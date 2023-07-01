@@ -1,14 +1,5 @@
 const MARKDOWN_RENDER_STYLES = `
-<style>
-/* Add your desired styling for the rendered readme */
-.md-container {
-  background-color: #f9f9f9;
-  border: 0.1em solid #dddddd;
-  border-radius: 0.2em;
-  font-family: Arial, sans-serif, monospace;
-  padding: 0 1em;
-}
-</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css" />
 `
 // Define the web component
 class MarkdownView extends HTMLElement {
@@ -53,7 +44,7 @@ class MarkdownView extends HTMLElement {
             .then(response => response.text())
             .then(async (data) => {
                 const htmlContent = await this.convertMarkdownToHtml(data);
-                this.shadowRoot.innerHTML = `${MARKDOWN_RENDER_STYLES}<div class="md-container">${htmlContent}</div>`;
+                this.shadowRoot.innerHTML = `${MARKDOWN_RENDER_STYLES}<div class="markdown-body">${htmlContent}</div>`;
             })
             .catch(error => {
                 console.error(error);
