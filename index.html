@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Oh My Web Components!</title>
+
+  <script src="components/github-diff-render.js"></script>
+</head>
+<body>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const componentName = urlParams.get("componentName")
+        document.body.appendChild(createElement("github-diff-render"));
+    </script>
+</body>
+</html>
