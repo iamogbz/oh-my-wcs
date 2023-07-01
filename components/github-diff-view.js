@@ -1,8 +1,10 @@
 // Define the web component
 class DiffView extends HTMLElement {
     static NAME = "github-diff-view";
+
     static ATTR_FILE="file"
     static ATTR_REPO="repo"
+
     static URL_PARAM_COMMIT_A = "commitA";
     static URL_PARAM_COMMIT_B = "commitB";
 

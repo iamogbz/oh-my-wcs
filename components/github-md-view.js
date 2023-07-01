@@ -1,24 +1,28 @@
 const MARKDOWN_RENDER_STYLES = `
 <style>
 /* Add your desired styling for the rendered readme */
-.readme-container {
-  font-family: Arial, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  padding: 20px;
+.md-container {
   background-color: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 0.1em solid #dddddd;
+  border-radius: 0.2em;
+  font-family: Arial, sans-serif, monospace;
+  padding: 0 1em;
 }
 </style>
 `
 // Define the web component
 class MarkdownView extends HTMLElement {
     static NAME = "md-view";
+    static DEPS = [
+        // https://marked.js.org/
+        "https://cdn.jsdelivr.net/npm/marked/marked.min.js"
+    ]
+
     static ATTR_FILE = "url"
 
     constructor() {
         super();
+        this._deps = Promise.all(MarkdownView.DEPS.map((scriptUrl) => import(scriptUrl)));
         this.attachShadow({ mode: "open" });
     }
 
@@ -37,6 +41,7 @@ class MarkdownView extends HTMLElement {
     }
 
     render() {
+        this.shadowRoot.innerHTML
         const url = this.getAttribute(MarkdownView.ATTR_FILE);
 
         if (!url) {
@@ -46,13 +51,19 @@ class MarkdownView extends HTMLElement {
 
         fetch(url)
             .then(response => response.text())
-            .then(data => {
-                this.shadowRoot.innerHTML = `<div class="md-container">${data}</div>`;
+            .then(async (data) => {
+                const htmlContent = await this.convertMarkdownToHtml(data);
+                this.shadowRoot.innerHTML = `${MARKDOWN_RENDER_STYLES}<div class="md-container">${htmlContent}</div>`;
             })
             .catch(error => {
                 console.error(error);
                 this.shadowRoot.innerHTML = `<p>Error loading markdown</p>`;
             });
+    }
+
+    async convertMarkdownToHtml(markdown) {
+        await this._deps;
+        return marked.parse(markdown)
     }
 }
 

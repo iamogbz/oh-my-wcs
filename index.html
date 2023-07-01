@@ -13,13 +13,15 @@
     const URL_PARAM_COMPONENT = "componentName"
 
     const urlParams = new URLSearchParams(window.location.search);
-    const componentName = urlParams.get(URL_PARAM_COMPONENT)
+    const componentName = urlParams.get(URL_PARAM_COMPONENT);
 
     if (componentName) {
       document.body.appendChild(document.createElement(componentName));
     } else {
+      const readmeUrl = "https://raw.githubusercontent.com/iamogbz/oh-my-wcs/HEAD/README.md";
       const readmeElement = document.createElement(MarkdownView.NAME);
-      readmeElement.setAttribute(MarkdownView.ATTR_FILE, "https://raw.githubusercontent.com/iamogbz/oh-my-wcs/HEAD/README.md")
+      readmeElement.setAttribute(MarkdownView.ATTR_FILE, readmeUrl);
+      document.body.appendChild(readmeElement);
     }
   </script>
 </body>
