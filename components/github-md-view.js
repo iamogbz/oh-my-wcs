@@ -12,7 +12,7 @@ const MARKDOWN_RENDER_STYLES = `
 `
 // Define the web component
 class MarkdownView extends HTMLElement {
-    static NAME = "md-view";
+    static NAME = "github-md-view";
     static DEPS = [
         // https://marked.js.org/
         "https://cdn.jsdelivr.net/npm/marked/marked.min.js"
