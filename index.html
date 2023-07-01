@@ -23,7 +23,7 @@
     if (componentName) {
       document.body.appendChild(document.createElement(componentName));
     } else {
-      const readmeUrl = "https://raw.githubusercontent.com/iamogbz/oh-my-wcs/HEAD/README.md";
+      const readmeUrl = "./README.md";
       const readmeElement = document.createElement(MarkdownView.NAME);
       readmeElement.setAttribute(MarkdownView.ATTR_FILE, readmeUrl);
       document.body.appendChild(readmeElement);
