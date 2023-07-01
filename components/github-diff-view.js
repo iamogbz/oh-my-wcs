@@ -1,13 +1,19 @@
 // Define the web component
-class DiffRender extends HTMLElement {
+class DiffView extends HTMLElement {
+    static NAME = "github-diff-view";
+    static ATTR_FILE="file"
+    static ATTR_REPO="repo"
+    static URL_PARAM_COMMIT_A = "commitA";
+    static URL_PARAM_COMMIT_B = "commitB";
+
     constructor() {
         super();
     }
 
     connectedCallback() {
         const urlParams = new URLSearchParams(window.location.search);
-        const commitA = urlParams.get("commitA");
-        const commitB = urlParams.get("commitB");
+        const commitA = urlParams.get(DiffView.URL_PARAM_COMMIT_A);
+        const commitB = urlParams.get(DiffView.URL_PARAM_COMMIT_B);
 
         if (commitA && commitB) {
             this.render(commitA, commitB);
@@ -17,8 +23,8 @@ class DiffRender extends HTMLElement {
     }
 
     render(commitA, commitB) {
-        const repo = this.getAttribute("repo");
-        const file = this.getAttribute("file");
+        const repo = this.getAttribute(DiffView.ATTR_REPO);
+        const file = this.getAttribute(DiffView.ATTR_FILE);
 
         fetch(`https://api.github.com/repos/${repo}/compare/${commitA}...${commitB}/files/${file}`)
             .then(response => response.json())
@@ -34,4 +40,4 @@ class DiffRender extends HTMLElement {
 }
 
 // Define the custom element
-customElements.define("github-diff-render", DiffRender);
+customElements.define(DiffView.NAME, DiffView);

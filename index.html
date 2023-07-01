@@ -1,15 +1,27 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Oh My Web Components!</title>
 
-  <script src="components/github-diff-render.js"></script>
+  <script src="components/github-diff-view.js"></script>
+  <script src="components/github-md-view.js"></script>
 </head>
+
 <body>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const componentName = urlParams.get("componentName")
-        document.body.appendChild(createElement("github-diff-render"));
-    </script>
+  <script>
+    const URL_PARAM_COMPONENT = "componentName"
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const componentName = urlParams.get(URL_PARAM_COMPONENT)
+
+    if (componentName) {
+      document.body.appendChild(document.createElement(componentName));
+    } else {
+      const readmeElement = document.createElement(MarkdownView.NAME);
+      readmeElement.setAttribute(MarkdownView.ATTR_FILE, "https://raw.githubusercontent.com/iamogbz/oh-my-wcs/HEAD/README.md")
+    }
+  </script>
 </body>
+
 </html>
