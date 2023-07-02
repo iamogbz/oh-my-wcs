@@ -33,6 +33,7 @@ const DIFF_RENDER_STYLES = `
         gap: var(--size-padding-default);
         background: var(--color-bg-subtle);
         color: var(--color-fg-muted);
+        cursor: default;
         border-bottom: solid var(--size-border-default) var(--color-border-subtle);
 
         .material-icons-round {
@@ -50,16 +51,20 @@ const DIFF_RENDER_STYLES = `
 
             &:hover {
                 color: var(--color-fg-active);
-                text-decoration: underline;
             }
         }
 
         .diff-filename {
             padding: var(--size-padding-code);
+
+            &:hover {
+                text-decoration: underline;
+            }
         }
 
         .copy-filename {
-            display: none;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
         }
 
         .diff-summary-bar {
@@ -181,22 +186,33 @@ class DiffView extends HTMLElement {
       this.getAttribute(DiffView.ATTR_BASE) ??
       urlParams.get(DiffView.ATTR_BASE);
 
-    if (repo && file && head && base) {
-      this.render(repo, file, head, base);
+    let hasRequiredAttributes = true;
+    const attributes = { repo, file, head, base };
+    const component = document.createElement(DiffView.NAME);
+    Object.entries(attributes).forEach(([key, value]) => {
+      if (!value) return (hasRequiredAttributes = false);
+      component.setAttribute(key, value);
+    });
+    this._componentCode = component.outerHTML;
+
+    if (hasRequiredAttributes) {
+      this.render(attributes);
     } else {
-      const prettyJson = JSON.stringify({ repo, file, head, base }, null, 2);
+      const prettyJson = JSON.stringify(attributes, null, 2);
       this.innerHTML = `<p>Missing some parameters</p><pre><code>${prettyJson}</code><pre>`;
     }
   }
 
   /**
    * Fetch and render the diff
-   * @param {string} repo github project repository
-   * @param {string} file git project file path
-   * @param {string} head github ref
-   * @param {string} base github ref
+   * @param {{
+   *    repo: string | null;
+   *    file: string | null;
+   *    head: string | null;
+   *    base: string | null;
+   * }} params
    */
-  render(repo, file, head, base) {
+  render({ repo, file, head, base }) {
     const commitHeadBase = `${head}...${base}`;
     const diffApiUrl = `https://api.github.com/repos/${repo}/compare/${commitHeadBase}`;
     fetch(diffApiUrl)
@@ -205,7 +221,7 @@ class DiffView extends HTMLElement {
         const diffPatch = data.files.filter(
           (/** @type {{ filename: string; }} */ f) => f.filename === file
         )[0]?.patch;
-        if (diffPatch) {
+        if (file && diffPatch) {
           this.innerHTML = DIFF_RENDER_STYLES; // clear existing diff
           this.appendChild(this.convertDiffToHtml(file, diffPatch));
         } else {
@@ -233,6 +249,8 @@ class DiffView extends HTMLElement {
     const lineTokenDel = "-",
       lineTokenAdd = "+",
       lineTokenNil = "\\ No newline at end of file";
+    const copyButtonCls = "copy-filename";
+    const copyButtonText = "filter_none";
     const changeBarStops = 5;
 
     // patch lines
@@ -321,7 +339,7 @@ class DiffView extends HTMLElement {
         }),
       `</span>`,
       `<span class="diff-filename" tabindex="0">${filename}</span>`,
-      `<span class="copy-filename ${iconClass}">filter_none</span>`,
+      `<span class="${copyButtonCls} ${iconClass}" title="Copy component code">${copyButtonText}</span>`,
       `</div>`,
     ];
 
@@ -329,6 +347,58 @@ class DiffView extends HTMLElement {
     const diffHtml = document.createElement("div");
     diffHtml.className = "change-diff";
     diffHtml.innerHTML = [...headerElems, ...lineDiffRenders].join("");
+
+    // copy component code to clipboard
+    const copyButton = diffHtml.querySelector(`.${copyButtonCls}`);
+    copyButton?.addEventListener("click", () => {
+      if (!this._componentCode)
+        throw `Component code missing: ${this._componentCode}`;
+
+      const setButtonText = (/** @type {string | null} */ buttonText) => {
+        copyButton.setAttribute("style", "opacity: 0"),
+          setTimeout(() => {
+            copyButton.textContent = buttonText;
+            copyButton.setAttribute("style", "opacity: 1");
+          }, 200);
+      };
+      const setButtonSuccess = () => setButtonText("done");
+      const setButtonFailure = (/** @type {unknown} */ e) => {
+        console.error(e);
+        setButtonText("close");
+      };
+      const resetButtonText = () =>
+        setTimeout(() => setButtonText(copyButtonText), 700);
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard
+            .writeText(this._componentCode)
+            .then(setButtonSuccess)
+            .catch(setButtonFailure)
+            .finally(resetButtonText);
+        } else {
+          // Fallback for browsers without Clipboard API support
+          const copyTextHolderId = "copy-text-holder";
+          const textarea =
+            Array.from(document.getElementsByTagName("textarea")).find(
+              (elem) => elem.id === copyTextHolderId
+            ) ?? document.createElement("textarea");
+          textarea.id = copyTextHolderId;
+          textarea.value = this._componentCode;
+          textarea.style.visibility = "invisible";
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          setButtonSuccess();
+          document.body.removeChild(textarea);
+        }
+      } catch (e) {
+        setButtonFailure(e);
+      } finally {
+        resetButtonText();
+      }
+    });
+
     return diffHtml;
   }
 }
