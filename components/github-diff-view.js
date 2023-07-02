@@ -2,8 +2,8 @@
 class DiffView extends HTMLElement {
     static NAME = "github-diff-view";
 
-    static ATTR_COMMIT_A = "commitA";
-    static ATTR_COMMIT_B = "commitB";
+    static ATTR_HEAD = "head";
+    static ATTR_BASE = "base";
     static ATTR_FILE = "file"
     static ATTR_REPO = "repo"
 
@@ -15,25 +15,25 @@ class DiffView extends HTMLElement {
         const urlParams = new URLSearchParams(window.location.search);
         const repo = this.getAttribute(DiffView.ATTR_REPO) ?? urlParams.get(DiffView.ATTR_REPO);
         const file = this.getAttribute(DiffView.ATTR_FILE) ?? urlParams.get(DiffView.ATTR_FILE);
-        const commitA = this.getAttribute(DiffView.ATTR_COMMIT_A) ?? urlParams.get(DiffView.ATTR_COMMIT_A);
-        const commitB = this.getAttribute(DiffView.ATTR_COMMIT_B) ?? urlParams.get(DiffView.ATTR_COMMIT_B);
+        const head = this.getAttribute(DiffView.ATTR_HEAD) ?? urlParams.get(DiffView.ATTR_HEAD);
+        const base = this.getAttribute(DiffView.ATTR_BASE) ?? urlParams.get(DiffView.ATTR_BASE);
 
-        if (repo && file && commitA && commitB) {
-            this.render(repo, file, commitA, commitB);
+        if (repo && file && head && base) {
+            this.render(repo, file, head, base);
         } else {
-            this.innerHTML = `<p>Missing some parameters</p><pre><code type="json">${JSON.stringify({ repo, file, commitA, commitB }, 2, null)}</code><pre>`;
+            this.innerHTML = `<p>Missing some parameters</p><pre><code type="json">${JSON.stringify({ repo, file, head, base }, 2, null)}</code><pre>`;
         }
     }
 
-    render(repo, file, commitA, commitB) {
-        const commitHeadBase = `${commitA}...${commitB}`;
+    render(repo, file, head, base) {
+        const commitHeadBase = `${head}...${base}`;
         const diffApiUrl = `https://api.github.com/repos/${repo}/compare/${commitHeadBase}`;
         fetch(diffApiUrl)
             .then(response => response.json())
             .then(data => {
-                const diffHtml = data.files.filter(f => f.filename === file)[0]?.patch;
-                if (diffHtml) {
-                    this.innerHTML = `<pre>${diffHtml}</pre>`;
+                const diffPatch = data.files.filter(f => f.filename === file)[0]?.patch;
+                if (diffPatch) {
+                    this.innerHTML = this.convertDiffToHtml(diffPatch);
                 } else {
                     throw `Missing '${file}' diff: ${diffApiUrl}`
                 }
@@ -42,6 +42,10 @@ class DiffView extends HTMLElement {
                 console.error(error);
                 this.innerHTML = `<p>Error loading diff</p>`;
             });
+    }
+
+    convertDiffToHtml(patch) {
+        return `<pre>${patch}</pre>`
     }
 }
 

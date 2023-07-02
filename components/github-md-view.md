@@ -2,10 +2,10 @@
 
 Render a markdown file from a url as html in github style
 
-| Param           | Value                 | Description       |
-| --------------- | --------------------- | ----------------- |
-| `componentName` | `"github-md-view"`    | CONSTANT          |
-| `url`           | `string`              | Markdown file url |
+| Param            | Value                 | Description       |
+| ---------------- | --------------------- | ----------------- |
+| `component-name` | `"github-md-view"`    | CONSTANT          |
+| `url`            | `string`              | Markdown file url |
 
 ## Example
 

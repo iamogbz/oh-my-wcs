@@ -32,15 +32,15 @@ class MarkdownView extends HTMLElement {
     }
 
     render() {
-        this.shadowRoot.innerHTML
-        const url = this.getAttribute(MarkdownView.ATTR_FILE);
+        const urlParams = new URLSearchParams(window.location.search);
+        const mdUrl = this.getAttribute(MarkdownView.ATTR_FILE) ?? urlParams.get(MarkdownView.ATTR_FILE);
 
-        if (!url) {
+        if (!mdUrl) {
             this.shadowRoot.innerHTML = `<p>No URL provided</p>`;
             return;
         }
 
-        fetch(url)
+        fetch(mdUrl)
             .then(response => response.text())
             .then(async (data) => {
                 const htmlContent = await this.convertMarkdownToHtml(data);
