@@ -8,6 +8,7 @@
   "scripts": {
     "lint": "eslint --ignore-path .gitignore",
     "lint-all": "pnpm lint .",
+    "lint-fix": "pnpm lint-all --fix",
     "test": "echo 'No tests configured.'",
     "type-chk": "tsc --noEmit"
   }
