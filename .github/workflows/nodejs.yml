@@ -1,0 +1,33 @@
+name: project build and deployment
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: .nvmrc
+    - uses: pnpm/action-setup@v2.2.1
+      with:
+        version: 8
+        run_install: |
+            args: [--no-frozen-lockfile]
+    - name: Typecheck
+      run: |
+        pnpm type-chk
+    - name: Lint
+      run: |
+        pnpm lint-all
+    - name: Test
+      env:
+        CI: true
+      run: |
+        pnpm test -- --ci --coverage
