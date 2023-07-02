@@ -69,7 +69,7 @@ class MarkdownView extends HTMLElement {
    */
   async convertMarkdownToHtml(markdown) {
     await this._deps;
-    // @ts-expect-error Marked is fetched from the linked {@link DEPS}
+    /** @ts-expect-error Marked is fetched from the linked {@link MarkdownView.DEPS} */
     return marked.parse(markdown);
   }
 }
