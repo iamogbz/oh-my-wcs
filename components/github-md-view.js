@@ -1,5 +1,5 @@
 const MARKDOWN_RENDER_STYLES = `
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown-light.min.css" />
 `
 // Define the web component
 class MarkdownView extends HTMLElement {
