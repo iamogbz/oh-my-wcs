@@ -16,6 +16,8 @@ const DIFF_RENDER_STYLES = `
     --size-padding-large: 24px;
     --size-border-default: 1px;
     --size-border-radius-container: 8px;
+    --size-diff-line-num: 88px;
+    --size-diff-line-height: 24px;
 
     font-family: monospace;
     font-size: 1em;
@@ -106,7 +108,8 @@ const DIFF_RENDER_STYLES = `
         display: flex;
         align-items: center;
         justify-content: start;
-        height: 24px;
+        min-height: var(--size-diff-line-height);
+        max-height: var(--size-diff-line-height);
 
         &.diff-line-del {
             background: color-mix(in srgb, var(--color-diff-del) 20%, transparent);
@@ -123,14 +126,22 @@ const DIFF_RENDER_STYLES = `
         &:active, &:focus {
             font-weight: 900;
             outline: 0;
+
+            .diff-line-nil {
+                font-weight: 900;
+            }
         }
 
         .code-line {
             margin: 0;
             font-size: 0.8em;
             padding: var(--size-padding-code);
+            display: flex;
+            align-items: center;
+            justify-content: left;
+            height: var(--size-diff-line-height);
 
-            &.diff-line-del {
+            &.diff-line-nil {
                 color: var(--color-diff-del);
                 font-size: 1.2em;
             }
@@ -138,16 +149,24 @@ const DIFF_RENDER_STYLES = `
 
         .diff-line-num {
             background: color-mix(in srgb, var(--color-bg-subtle) 50%, transparent);
-            padding: var(--size-padding-code);
+            padding: 0 var(--size-padding-code);
             user-select: none;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: calc(var(--size-padding-code) / 2);
+            height: var(--size-diff-line-height);
+            max-width: var(--size-diff-line-num);
+            min-width: var(--size-diff-line-num);
 
             .line-num-base, .line-num-head {
-                display: inline-flex;
-                width: 32px;
+                display: flex;
+                max-width: calc(var(--size-diff-line-num) / 2 - var(--size-padding-code) / 4);
+                min-width: calc(var(--size-diff-line-num) / 2 - var(--size-padding-code) / 4);
                 text-overflow: ellipsis;
                 overflow: auto hidden;
-                padding: 0 4px;
+                padding: 0;
                 text-align: end;
                 justify-content: end;
                 align-items: center;
@@ -275,7 +294,7 @@ class DiffView extends HTMLElement {
       // use native inner text escape to handle possible html code insertion
       const codeContainer = document.createElement("pre");
       codeContainer.className = "code-line";
-      if (isEmptyLine) codeContainer.classList.add(iconClass, lineClassDel);
+      if (isEmptyLine) codeContainer.classList.add(iconClass, lineClassNil);
       codeContainer.innerText =
         (isEmptyLine && "remove_circle_outline") ||
         lineContent.replace(/(.)/, (s) => `${s} `);
