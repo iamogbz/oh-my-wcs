@@ -6,7 +6,7 @@ Floating web components for easy web building
 
 Each component documentation can be found in the accompanying [`<component-file-name>.md`](components/)
 
-To try out any component you can visit the url and set the component name in the url param `component-name` and any other required parameters.
+Try out any component using the demo links below, set the component name via the url param `component-name` and any other required parameters.
 
 ### Components
 
