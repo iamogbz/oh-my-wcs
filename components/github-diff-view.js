@@ -184,6 +184,19 @@ class DiffView extends HTMLElement {
     // https://github.com/octokit/octokit.js#usage
     "https://esm.sh/octokit": { Octokit: "Octokit" },
   }
+  static RENDER = {
+    CHANGEBAR_STOPS: 5,
+    CLS_ICON_SET: "material-icons-round",
+    CLS_COPY_BTN: "copy-filename",
+    CLS_LINE_ADD: "diff-line-add",
+    CLS_LINE_DEL: "diff-line-del",
+    CLS_LINE_NIL: "diff-line-nil",
+    CLS_LINE_SUM: "diff-line-sum",
+    TOKEN_LINE_ADD: "+",
+    TOKEN_LINE_DEL: "-",
+    TOKEN_LINE_NIL: "\\ No newline at end of file",
+    TEXT_COPY_BTN: "filter_none",
+  }
 
   /* Required attributes */
   static ATTR_HEAD = "head";
@@ -206,24 +219,28 @@ class DiffView extends HTMLElement {
     );
   }
 
-  connectedCallback() {
+  get params() {
     const urlParams = new URLSearchParams(window.location.search);
-    const auth = this.getAttribute(DiffView.ATTR_AUTH) ?? urlParams.get(DiffView.ATTR_AUTH);
-    const repo =
-      this.getAttribute(DiffView.ATTR_REPO) ??
-      urlParams.get(DiffView.ATTR_REPO);
-    const file =
-      this.getAttribute(DiffView.ATTR_FILE) ??
-      urlParams.get(DiffView.ATTR_FILE);
-    const head =
-      this.getAttribute(DiffView.ATTR_HEAD) ??
-      urlParams.get(DiffView.ATTR_HEAD);
-    const base =
-      this.getAttribute(DiffView.ATTR_BASE) ??
-      urlParams.get(DiffView.ATTR_BASE);
+    const attrParams = {
+      auth: this.getAttribute(DiffView.ATTR_AUTH) ?? urlParams.get(DiffView.ATTR_AUTH),
+      repo: this.getAttribute(DiffView.ATTR_REPO) ??
+        urlParams.get(DiffView.ATTR_REPO),
+      file: this.getAttribute(DiffView.ATTR_FILE) ??
+        urlParams.get(DiffView.ATTR_FILE),
+      head: this.getAttribute(DiffView.ATTR_HEAD) ??
+        urlParams.get(DiffView.ATTR_HEAD),
+      base: this.getAttribute(DiffView.ATTR_BASE) ??
+        urlParams.get(DiffView.ATTR_BASE),
+    }
+    return {
+      ...attrParams,
+      compareUrlPath: `${attrParams.repo}/compare/${attrParams.head}...${attrParams.base}`
+    }
+  }
 
+  connectedCallback() {
     let hasRequiredAttributes = true;
-    const requiredAttrs = { repo, file, head, base };
+    const { auth: _, ...requiredAttrs } = this.params;
     const component = document.createElement(DiffView.NAME);
     Object.entries(requiredAttrs).forEach(([key, value]) => {
       if (!value) return (hasRequiredAttributes = false);
@@ -232,7 +249,7 @@ class DiffView extends HTMLElement {
     this._componentCode = component.outerHTML;
 
     if (hasRequiredAttributes) {
-      this.render({ auth, ...requiredAttrs });
+      this.render();
     } else {
       const prettyJson = JSON.stringify(requiredAttrs, null, 2);
       this.innerHTML = `<p>Missing some parameters</p><pre><code>${prettyJson}</code><pre>`;
@@ -241,13 +258,10 @@ class DiffView extends HTMLElement {
 
   /**
    * Fetch and render the diff
-   * @param {{
-   *    [P in "auth"|"base"|"file"|"head"|"repo"]: string | null;
-   * }} params
    */
-  async render({ auth, repo, file, head, base }) {
-    const commitHeadBase = `${head}...${base}`;
-    const diffApiUrl = `https://api.github.com/repos/${repo}/compare/${commitHeadBase}`;
+  async render() {
+    const { auth, file, compareUrlPath } = this.params;
+    const diffApiUrl = `https://api.github.com/repos/${compareUrlPath}`;
 
     await this._deps;
     /** @ts-expect-error Octokit is fetched from the linked {@link DiffView.DEPS} */
@@ -276,72 +290,21 @@ class DiffView extends HTMLElement {
    * @param {string} patch git diff patch string
    */
   convertDiffToHtml(filename, patch) {
-    // render constants
-    const iconClass = "material-icons-round",
-      lineClassSum = "diff-line-sum",
-      lineClassAdd = "diff-line-add",
-      lineClassDel = "diff-line-del",
-      lineClassNil = "diff-line-nil";
-    const lineTokenDel = "-",
-      lineTokenAdd = "+",
-      lineTokenNil = "\\ No newline at end of file";
-    const copyButtonCls = "copy-filename";
-    const copyButtonText = "filter_none";
-    const changeBarStops = 5;
-
     // patch lines
     const [summary, ...diffLines] = patch.split("\n");
-
-    // line diff elems
-    const createDiffLine = (
-      /** @type {string} */ lineContent,
-      /** @type {number} */ lineNumBase = 0,
-      /** @type {number} */ lineNumHead = 0
-    ) => {
-      const isEmptyLine = lineContent.startsWith(lineTokenNil);
-      const lineClass =
-        Boolean(lineNumBase) === Boolean(lineNumHead)
-          ? lineNumBase
-            ? lineClassNil
-            : lineClassSum
-          : lineNumBase
-            ? lineClassDel
-            : lineClassAdd;
-
-      // use native inner text escape to handle possible html code insertion
-      const codeContainer = document.createElement("pre");
-      codeContainer.className = "code-line";
-      if (isEmptyLine) codeContainer.classList.add(iconClass, lineClassNil);
-      codeContainer.innerText =
-        (isEmptyLine && "remove_circle_outline") ||
-        lineContent.replace(/(.)/, (s) => `${s} `);
-
-      return `
-<div class="diff-line ${lineClass}" tabindex="0">
-    <span class="diff-line-num">
-        <span class="line-num-base">${
-          (!isEmptyLine && lineNumBase) || ""
-        }</span>
-        <span class="line-num-head">${
-          (!isEmptyLine && lineNumHead) || ""
-        }</span>
-    </span>
-    ${codeContainer.outerHTML}
-</div>
-  `;
-    };
-    const lineDiffRenders = [createDiffLine(summary)];
     const lineNumStart = Number(summary.match(/\+(\d+)/)?.[1]);
-    let lineCountBase = 0,
-      lineCountHead = 0,
-      lineCountSkip = 0;
-    diffLines.forEach((line) => {
-      let lineNumBase = 0,
-        lineNumHead = 0;
-      if (line.startsWith(lineTokenDel)) {
+    let lineCountBase = 0;
+    let lineCountHead = 0;
+    let lineCountSkip = 0;
+
+    // code diff line elements
+    const lineDiffRenders = diffLines.map((line) => {
+      let lineNumBase = 0;
+      let lineNumHead = 0;
+      if (line.startsWith(DiffView.RENDER.TOKEN_LINE_DEL)) {
         lineNumBase = lineNumStart + lineCountSkip + lineCountBase;
         lineCountBase += 1;
-      } else if (line.startsWith(lineTokenAdd)) {
+      } else if (line.startsWith(DiffView.RENDER.TOKEN_LINE_ADD)) {
         lineNumHead = lineNumStart + lineCountSkip + lineCountHead;
         lineCountHead += 1;
       } else {
@@ -349,33 +312,34 @@ class DiffView extends HTMLElement {
         lineNumHead = lineNumStart + lineCountSkip + lineCountHead;
         lineCountSkip += 1;
       }
-      lineDiffRenders.push(createDiffLine(line, lineNumBase, lineNumHead));
+      return this.createDiffLine(line, lineNumBase, lineNumHead);
     });
+    // prepend code summary diff line
+    lineDiffRenders.unshift(this.createDiffLine(summary))
 
-    // summary header elems
+    // view header elems
     const lineCountDiff = lineCountBase + lineCountHead;
     const lineCountTotal = lineCountDiff + lineCountSkip;
-    const changeStopScale = changeBarStops / lineCountTotal;
+    const changeStopScale = DiffView.RENDER.CHANGEBAR_STOPS / lineCountTotal;
     const changeSummaryCountDel = Math.round(changeStopScale * lineCountBase);
     const changeSummaryCountAdd = Math.round(changeStopScale * lineCountHead);
     const headerElems = [
       `<div class="diff-header">`,
       `<span class="diff-summary-count">${lineCountDiff}</span>`,
       `<span class="diff-summary-bar">`,
-      ...Array(changeBarStops)
+      ...Array(DiffView.RENDER.CHANGEBAR_STOPS)
         .fill(null)
         .map((_, i) => {
-          return `<span class="${iconClass} change-bar-stop-${i} ${
-            i < changeSummaryCountAdd
-              ? lineClassAdd
-              : i - changeSummaryCountAdd < changeSummaryCountDel
-              ? lineClassDel
-              : lineClassNil
-          }">square</span>`;
+          return `<span class="${DiffView.RENDER.CLS_ICON_SET} change-bar-stop-${i} ${i < changeSummaryCountAdd
+            ? DiffView.RENDER.TOKEN_LINE_ADD
+            : i - changeSummaryCountAdd < changeSummaryCountDel
+              ? DiffView.RENDER.TOKEN_LINE_DEL
+              : DiffView.RENDER.TOKEN_LINE_NIL
+            }">square</span>`;
         }),
       `</span>`,
       `<span class="diff-filename" tabindex="0">${filename}</span>`,
-      `<span class="${copyButtonCls} ${iconClass}" title="Copy component code">${copyButtonText}</span>`,
+      `<span class="${DiffView.RENDER.CLS_COPY_BTN} ${DiffView.RENDER.CLS_ICON_SET}" title="Copy component code">${DiffView.RENDER.TEXT_COPY_BTN}</span>`,
       `</div>`,
     ];
 
@@ -384,8 +348,59 @@ class DiffView extends HTMLElement {
     diffHtml.className = "change-diff";
     diffHtml.innerHTML = [...headerElems, ...lineDiffRenders].join("");
 
-    // copy component code to clipboard
-    const copyButton = diffHtml.querySelector(`.${copyButtonCls}`);
+    this.setupCopyButton(diffHtml.querySelector(`.${DiffView.RENDER.CLS_COPY_BTN}`));
+
+    return diffHtml;
+  }
+
+  createDiffLine(
+    /** @type {string} */ lineContent,
+    /** @type {number} */ lineNumBase = 0,
+    /** @type {number} */ lineNumHead = 0
+  ) {
+    const isEmptyLine = lineContent.startsWith(DiffView.RENDER.TOKEN_LINE_NIL);
+    const lineClass =
+      Boolean(lineNumBase) === Boolean(lineNumHead)
+        ? lineNumBase
+          ? DiffView.RENDER.CLS_LINE_NIL
+          : DiffView.RENDER.CLS_LINE_SUM
+        : lineNumBase
+          ? DiffView.RENDER.CLS_LINE_DEL
+          : DiffView.RENDER.CLS_LINE_ADD;
+
+    // use native inner text escape to handle possible html code insertion
+    const codeContainer = document.createElement("pre");
+    codeContainer.className = "code-line";
+    if (isEmptyLine) codeContainer.classList.add(DiffView.RENDER.CLS_ICON_SET, DiffView.RENDER.TOKEN_LINE_NIL);
+    codeContainer.innerText =
+      (isEmptyLine && "remove_circle_outline") ||
+      lineContent.replace(/(.)/, (s) => `${s} `);
+
+    return `
+<div class="diff-line ${lineClass}" tabindex="0">
+  <span class="diff-line-num">
+      <span class="line-num-base">${(!isEmptyLine && lineNumBase) || ""
+      }</span>
+      <span class="line-num-head">${(!isEmptyLine && lineNumHead) || ""
+      }</span>
+  </span>
+  ${codeContainer.outerHTML}
+</div>
+`;
+  }
+
+  /**
+   * Copy component code to clipboard when element is clicked
+   * @param {HTMLElement | null} copyButton
+   * @returns
+   */
+  setupCopyButton(copyButton) {
+    if (!copyButton) return;
+
+    const copyButtonTextDefault = DiffView.RENDER.TEXT_COPY_BTN;
+    const copyButtonTextSuccess = "done";
+    const copyButtonTextFailure = "close";
+
     copyButton?.addEventListener("click", () => {
       if (!this._componentCode)
         throw `Component code missing: ${this._componentCode}`;
@@ -397,13 +412,13 @@ class DiffView extends HTMLElement {
             copyButton.setAttribute("style", "opacity: 1");
           }, 200);
       };
-      const setButtonSuccess = () => setButtonText("done");
+      const setButtonSuccess = () => setButtonText(copyButtonTextSuccess);
       const setButtonFailure = (/** @type {unknown} */ e) => {
         console.error(e);
-        setButtonText("close");
+        setButtonText(copyButtonTextFailure);
       };
       const resetButtonText = () =>
-        setTimeout(() => setButtonText(copyButtonText), 700);
+        setTimeout(() => setButtonText(copyButtonTextDefault), 700);
 
       try {
         if (navigator.clipboard?.writeText) {
@@ -434,8 +449,6 @@ class DiffView extends HTMLElement {
         resetButtonText();
       }
     });
-
-    return diffHtml;
   }
 }
 
