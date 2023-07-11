@@ -149,7 +149,7 @@ class FileView extends HTMLElement {
   static DEPS = {
     // https://github.com/octokit/octokit.js#usage
     "https://esm.sh/octokit": { Octokit: "Octokit" },
-  }
+  };
   static RENDER = {
     CLS_ICON_SET: "material-icons-round",
     CLS_COPY_BTN: "copy-filename",
@@ -161,7 +161,7 @@ class FileView extends HTMLElement {
     TOKEN_LINE_DEL: "-",
     TOKEN_LINE_NIL: "\\ No newline at end of file",
     TEXT_COPY_BTN: "filter_none",
-  }
+  };
 
   /* Required attributes */
   static ATTR_REF = "ref";
@@ -178,8 +178,10 @@ class FileView extends HTMLElement {
       Object.entries(FileView.DEPS).map(async ([scriptUrl, shimImports]) => {
         const module = await import(scriptUrl);
         Object.entries(shimImports).forEach(([sourceKey, targetValue]) => {
-          Object.defineProperty(window, targetValue, { value: module[sourceKey] })
-        })
+          Object.defineProperty(window, targetValue, {
+            value: module[sourceKey],
+          });
+        });
       })
     );
   }
@@ -187,20 +189,27 @@ class FileView extends HTMLElement {
   get params() {
     const urlParams = new URLSearchParams(window.location.search);
     const attrParams = {
-      auth: this.getAttribute(FileView.ATTR_AUTH) ?? urlParams.get(FileView.ATTR_AUTH),
-      repo: this.getAttribute(FileView.ATTR_REPO) ??
+      auth:
+        this.getAttribute(FileView.ATTR_AUTH) ??
+        urlParams.get(FileView.ATTR_AUTH) ??
+        undefined,
+      repo:
+        this.getAttribute(FileView.ATTR_REPO) ??
         urlParams.get(FileView.ATTR_REPO),
-      ref: this.getAttribute(FileView.ATTR_REF) ??
+      ref:
+        this.getAttribute(FileView.ATTR_REF) ??
         urlParams.get(FileView.ATTR_REF),
-      file: this.getAttribute(FileView.ATTR_FILE) ??
+      file:
+        this.getAttribute(FileView.ATTR_FILE) ??
         urlParams.get(FileView.ATTR_FILE),
-      lines: this.getAttribute(FileView.ATTR_LINES) ??
+      lines:
+        this.getAttribute(FileView.ATTR_LINES) ??
         urlParams.get(FileView.ATTR_LINES),
-    }
+    };
     return {
       ...attrParams,
       // fileUrlPath: `${attrParams.repo}/blob/${attrParams.ref}/${attrParams.file}#${attrParams.lines ?? ''}`
-    }
+    };
   }
 
   connectedCallback() {
@@ -228,17 +237,29 @@ class FileView extends HTMLElement {
 
     await this._deps;
     /** @ts-expect-error Octokit is fetched from the linked {@link FileView.DEPS} */
-    const octokit = new Octokit({ auth })
-    octokit.request(`GET ${fileApiUrl}`)
-      .then((/** @type {{ data: Record<'content'|'name'|'path'|'html_url'|'type', string>}}} */ { data }) => {
-        if (data.type == 'file') {
-          this.innerHTML = FILE_RENDER_STYLES; // clear existing file
-          const [from, to] = lines?.split('-').map(l => Number(l.match(/L(d+)/)?.[1])) ?? [0, Number.POSITIVE_INFINITY];
-          this.appendChild(this.convertFileToHtml(data, { from, to }));
-        } else {
-          throw `No file found '${file}': ${fileApiUrl}`;
+    const octokit = new Octokit({ auth });
+    octokit
+      .request(`GET ${fileApiUrl}`)
+      .then(
+        (
+          /** @type {{ data: Record<'content'|'name'|'path'|'html_url'|'type', string>}}} */ {
+            data,
+          }
+        ) => {
+          if (data.type == "file") {
+            this.innerHTML = FILE_RENDER_STYLES; // clear existing file
+            const [from, to] = lines
+              ?.split("-")
+              .map((l) => Number(l.match(/L(d+)/)?.[1])) ?? [
+                0,
+                Number.POSITIVE_INFINITY,
+              ];
+            this.appendChild(this.convertFileToHtml(data, { from, to }));
+          } else {
+            throw `No file found '${file}': ${fileApiUrl}`;
+          }
         }
-      })
+      )
       .catch((/** @type {Error} */ error) => {
         console.error(error);
         this.innerHTML = `<p>Error loading file</p>`;
@@ -252,33 +273,53 @@ class FileView extends HTMLElement {
    */
   convertFileToHtml(data, lineNum) {
     // patch lines
-    const fileContent = atob(data.content)
+    const fileContent = atob(data.content);
     const fileLines = fileContent.split("\n");
-    const fileLinesVisible = fileLines.filter((_, i) => i + 1 >= lineNum.from && i < lineNum.to);
+    const fileLinesVisible = fileLines.filter(
+      (_, i) => i + 1 >= lineNum.from && i < lineNum.to
+    );
     this._componentCode = fileLinesVisible.join("\n");
     // code file line elements
-    const lineFileRenders = fileLinesVisible.map((line, i) => this.createFileLine(line, lineNum.from + i, lineNum.from + i));
+    const lineFileRenders = fileLinesVisible.map((line, i) =>
+      this.createFileLine(line, lineNum.from + i, lineNum.from + i)
+    );
 
     const fileLinesVisibleCount = fileLinesVisible.length;
     const fileLinesVisibleIncrement = Math.floor(fileLinesVisibleCount / 2);
 
     // prepend more code above line
-    const fileLinesAboveStart = lineNum.from - Math.min(lineNum.from, fileLinesVisibleIncrement)
+    const fileLinesAboveStart =
+      lineNum.from - Math.min(lineNum.from, fileLinesVisibleIncrement);
     if (fileLinesAboveStart) {
       const fileLinesAboveEnd = lineNum.from - 1;
-      lineFileRenders.unshift(this.createFileLine(`L${fileLinesAboveStart}-L${fileLinesAboveEnd}`, fileLinesAboveStart, fileLinesAboveEnd));
+      lineFileRenders.unshift(
+        this.createFileLine(
+          `L${fileLinesAboveStart}-L${fileLinesAboveEnd}`,
+          fileLinesAboveStart,
+          fileLinesAboveEnd
+        )
+      );
     }
     // append more code below line
-    const fileLinesBelowEnd = lineNum.to + Math.min(fileLines.length - lineNum.to, fileLinesVisibleIncrement)
+    const fileLinesBelowEnd =
+      lineNum.to +
+      Math.min(fileLines.length - lineNum.to, fileLinesVisibleIncrement);
     if (fileLinesBelowEnd) {
       const fileLinesBelowStart = lineNum.to + 1;
-      lineFileRenders.push(this.createFileLine(`L${fileLinesBelowStart}-L${fileLinesBelowEnd}`, fileLinesBelowStart, fileLinesBelowEnd));
+      lineFileRenders.push(
+        this.createFileLine(
+          `L${fileLinesBelowStart}-L${fileLinesBelowEnd}`,
+          fileLinesBelowStart,
+          fileLinesBelowEnd
+        )
+      );
     }
 
     // view header elems
     const headerElems = [
       `<div class="file-header">`,
-      `<span class="file-summary-count">${fileLines.length} total line${fileLines.length === 1 ? '' : 's'}</span>`,
+      `<span class="file-summary-count">${fileLines.length} total line${fileLines.length === 1 ? "" : "s"
+      }</span>`,
       `<a class="file-filename" tabindex="0" href=${data.html_url} target="_blank">${data.name}</a>`,
       `<span class="${FileView.RENDER.CLS_COPY_BTN} ${FileView.RENDER.CLS_ICON_SET}" title="Copy file lines">${FileView.RENDER.TEXT_COPY_BTN}</span>`,
       `</div>`,
@@ -289,7 +330,9 @@ class FileView extends HTMLElement {
     diffHtml.className = "file-wrapper";
     diffHtml.innerHTML = [...headerElems, ...lineFileRenders].join("");
 
-    this.setupCopyButton(diffHtml.querySelector(`.${FileView.RENDER.CLS_COPY_BTN}`));
+    this.setupCopyButton(
+      diffHtml.querySelector(`.${FileView.RENDER.CLS_COPY_BTN}`)
+    );
 
     return diffHtml;
   }
@@ -312,7 +355,11 @@ class FileView extends HTMLElement {
     // use native inner text escape to handle possible html code insertion
     const codeContainer = document.createElement("pre");
     codeContainer.className = "code-line";
-    if (isEmptyLine) codeContainer.classList.add(FileView.RENDER.CLS_ICON_SET, FileView.RENDER.TOKEN_LINE_NIL);
+    if (isEmptyLine)
+      codeContainer.classList.add(
+        FileView.RENDER.CLS_ICON_SET,
+        FileView.RENDER.TOKEN_LINE_NIL
+      );
     codeContainer.innerText =
       (isEmptyLine && "remove_circle_outline") ||
       lineContent.replace(/(.)/, (s) => `${s} `);
@@ -320,10 +367,8 @@ class FileView extends HTMLElement {
     return `
 <div class="file-line ${lineClass}" tabindex="0">
   <span class="file-line-num">
-      <span class="line-num-base">${(!isEmptyLine && lineNumBase) || ""
-      }</span>
-      <span class="line-num-head">${(!isEmptyLine && lineNumHead) || ""
-      }</span>
+      <span class="line-num-base">${(!isEmptyLine && lineNumBase) || ""}</span>
+      <span class="line-num-head">${(!isEmptyLine && lineNumHead) || ""}</span>
   </span>
   ${codeContainer.outerHTML}
 </div>
