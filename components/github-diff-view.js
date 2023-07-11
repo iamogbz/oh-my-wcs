@@ -180,18 +180,35 @@ const DIFF_RENDER_STYLES = `
 // Define the web component
 class DiffView extends HTMLElement {
   static NAME = "github-diff-view";
+  static DEPS = {
+    // https://github.com/octokit/octokit.js#usage
+    "https://esm.sh/octokit": { Octokit: "Octokit" },
+  }
 
+  /* Required attributes */
   static ATTR_HEAD = "head";
   static ATTR_BASE = "base";
   static ATTR_FILE = "file";
   static ATTR_REPO = "repo";
+  /* Optional attributes */
+  /** Github auth token used when present */
+  static ATTR_AUTH = "auth";
 
   constructor() {
     super();
+    this._deps = Promise.all(
+      Object.entries(DiffView.DEPS).map(async ([scriptUrl, shimImports]) => {
+        const module = await import(scriptUrl);
+        Object.entries(shimImports).forEach(([sourceKey, targetValue]) => {
+          Object.defineProperty(window, targetValue, { value: module[sourceKey] })
+        })
+      })
+    );
   }
 
   connectedCallback() {
     const urlParams = new URLSearchParams(window.location.search);
+    const auth = this.getAttribute(DiffView.ATTR_AUTH) ?? urlParams.get(DiffView.ATTR_AUTH);
     const repo =
       this.getAttribute(DiffView.ATTR_REPO) ??
       urlParams.get(DiffView.ATTR_REPO);
@@ -206,18 +223,18 @@ class DiffView extends HTMLElement {
       urlParams.get(DiffView.ATTR_BASE);
 
     let hasRequiredAttributes = true;
-    const attributes = { repo, file, head, base };
+    const requiredAttrs = { repo, file, head, base };
     const component = document.createElement(DiffView.NAME);
-    Object.entries(attributes).forEach(([key, value]) => {
+    Object.entries(requiredAttrs).forEach(([key, value]) => {
       if (!value) return (hasRequiredAttributes = false);
       component.setAttribute(key, value);
     });
     this._componentCode = component.outerHTML;
 
     if (hasRequiredAttributes) {
-      this.render(attributes);
+      this.render({ auth, ...requiredAttrs });
     } else {
-      const prettyJson = JSON.stringify(attributes, null, 2);
+      const prettyJson = JSON.stringify(requiredAttrs, null, 2);
       this.innerHTML = `<p>Missing some parameters</p><pre><code>${prettyJson}</code><pre>`;
     }
   }
@@ -225,20 +242,20 @@ class DiffView extends HTMLElement {
   /**
    * Fetch and render the diff
    * @param {{
-   *    repo: string | null;
-   *    file: string | null;
-   *    head: string | null;
-   *    base: string | null;
+   *    [P in "auth"|"base"|"file"|"head"|"repo"]: string | null;
    * }} params
    */
-  render({ repo, file, head, base }) {
+  async render({ auth, repo, file, head, base }) {
     const commitHeadBase = `${head}...${base}`;
     const diffApiUrl = `https://api.github.com/repos/${repo}/compare/${commitHeadBase}`;
-    fetch(diffApiUrl)
-      .then((response) => response.json())
-      .then((data) => {
+
+    await this._deps;
+    /** @ts-expect-error Octokit is fetched from the linked {@link DiffView.DEPS} */
+    const octokit = new Octokit({ auth })
+    octokit.request(`GET ${diffApiUrl}`)
+      .then((/** @type {{ data: { files: { filename: string; patch: string }[]; }}} */ { data }) => {
         const diffPatch = data.files.filter(
-          (/** @type {{ filename: string; }} */ f) => f.filename === file
+          (f) => f.filename === file
         )[0]?.patch;
         if (file && diffPatch) {
           this.innerHTML = DIFF_RENDER_STYLES; // clear existing diff
@@ -247,7 +264,7 @@ class DiffView extends HTMLElement {
           throw `Missing '${file}' diff: ${diffApiUrl}`;
         }
       })
-      .catch((error) => {
+      .catch((/** @type {Error} */ error) => {
         console.error(error);
         this.innerHTML = `<p>Error loading diff</p>`;
       });
@@ -288,8 +305,8 @@ class DiffView extends HTMLElement {
             ? lineClassNil
             : lineClassSum
           : lineNumBase
-          ? lineClassDel
-          : lineClassAdd;
+            ? lineClassDel
+            : lineClassAdd;
 
       // use native inner text escape to handle possible html code insertion
       const codeContainer = document.createElement("pre");
