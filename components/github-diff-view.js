@@ -323,6 +323,7 @@ class DiffView extends HTMLElement {
     const changeStopScale = DiffView.RENDER.CHANGEBAR_STOPS / lineCountTotal;
     const changeSummaryCountDel = Math.round(changeStopScale * lineCountBase);
     const changeSummaryCountAdd = Math.round(changeStopScale * lineCountHead);
+    const compareLink = `https://github.com/${this.params.compareUrlPath}/#${filename}`
     const headerElems = [
       `<div class="diff-header">`,
       `<span class="diff-summary-count">${lineCountDiff}</span>`,
@@ -331,14 +332,14 @@ class DiffView extends HTMLElement {
         .fill(null)
         .map((_, i) => {
           return `<span class="${DiffView.RENDER.CLS_ICON_SET} change-bar-stop-${i} ${i < changeSummaryCountAdd
-            ? DiffView.RENDER.TOKEN_LINE_ADD
+            ? DiffView.RENDER.CLS_LINE_ADD
             : i - changeSummaryCountAdd < changeSummaryCountDel
-              ? DiffView.RENDER.TOKEN_LINE_DEL
-              : DiffView.RENDER.TOKEN_LINE_NIL
+              ? DiffView.RENDER.CLS_LINE_DEL
+              : DiffView.RENDER.CLS_LINE_NIL
             }">square</span>`;
         }),
       `</span>`,
-      `<span class="diff-filename" tabindex="0">${filename}</span>`,
+      `<a class="diff-filename" tabindex="0" href=${compareLink} target="_blank">${filename}</a>`,
       `<span class="${DiffView.RENDER.CLS_COPY_BTN} ${DiffView.RENDER.CLS_ICON_SET}" title="Copy component code">${DiffView.RENDER.TEXT_COPY_BTN}</span>`,
       `</div>`,
     ];

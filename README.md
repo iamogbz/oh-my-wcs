@@ -10,4 +10,5 @@ Try out any component using the demo links below, set the component name via the
 
 ### Components
 
-* [`github-diff-view`](?component-name=github-md-view&url=components/github-md-view.md): [demo](?component-name=github-diff-view&head=f1c3c32&base=9dfe892&repo=tophat/webext-training&file=package.json)
+* [`github-md-view`](?component-name=github-md-view&url=components/github-md-view.md): 👈🏾 demo
+* [`github-diff-view`](?component-name=github-md-view&url=components/github-diff-view.md): [demo](?component-name=github-diff-view&head=f1c3c32&base=9dfe892&repo=tophat/webext-training&file=package.json)

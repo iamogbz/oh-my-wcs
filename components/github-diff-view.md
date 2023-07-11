@@ -6,7 +6,7 @@ Show the difference between two commits for a single file in github style
 
 | Param            | Value                | Description              |
 | ---------------- | -------------------- | ------------------------ |
-| `component-name` | `"github-diff-view"` | CONSTANT                 |
+| `component-name` | `"github-diff-view"` | __CONSTANT__             |
 | `repo`           | `string`             | Github `user/repo`       |
 | `file`           | `string`             | Git file path            |
 | `head`           | `string`             | Git <REF>                |
