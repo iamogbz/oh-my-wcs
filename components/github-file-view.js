@@ -205,7 +205,8 @@ class FileView extends HTMLElement {
 
   connectedCallback() {
     let hasRequiredAttributes = true;
-    const { auth: _, ...requiredAttrs } = this.params;
+    const { ...requiredAttrs } = this.params;
+    delete requiredAttrs.auth;
     Object.values(requiredAttrs).forEach((value) => {
       if (!value) return (hasRequiredAttributes = false);
     });

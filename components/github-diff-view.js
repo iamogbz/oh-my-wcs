@@ -240,7 +240,8 @@ class DiffView extends HTMLElement {
 
   connectedCallback() {
     let hasRequiredAttributes = true;
-    const { auth: _, ...requiredAttrs } = this.params;
+    const { ...requiredAttrs } = this.params;
+    delete requiredAttrs.auth;
     const component = document.createElement(DiffView.NAME);
     Object.entries(requiredAttrs).forEach(([key, value]) => {
       if (!value) return (hasRequiredAttributes = false);
