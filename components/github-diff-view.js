@@ -356,7 +356,7 @@ class DiffView extends HTMLElement {
             }">square</span>`;
         }),
       `</span>`,
-      `<a class="diff-filename" tabindex="0" href=${compareLink} target="_blank">${filename}</a>`,
+      `<a class="diff-filename" title="Open in github comparison" tabindex="0" href=${compareLink} target="_blank">${filename}</a>`,
       `<span class="${DiffView.RENDER.CLS_COPY_BTN} ${DiffView.RENDER.CLS_ICON_SET}" title="Copy component code">${DiffView.RENDER.TEXT_COPY_BTN}</span>`,
       `</div>`,
     ];
@@ -394,7 +394,7 @@ class DiffView extends HTMLElement {
     if (isEmptyLine)
       codeContainer.classList.add(
         DiffView.RENDER.CLS_ICON_SET,
-        DiffView.RENDER.TOKEN_LINE_NIL
+        DiffView.RENDER.CLS_LINE_NIL
       );
     codeContainer.innerText =
       (isEmptyLine && "remove_circle_outline") ||

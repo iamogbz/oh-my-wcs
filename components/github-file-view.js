@@ -16,7 +16,7 @@ const FILE_RENDER_STYLES = `
     --size-padding-large: 24px;
     --size-border-default: 1px;
     --size-border-radius-container: 8px;
-    --size-file-line-num: 88px;
+    --size-file-line-num: 44px;
     --size-file-line-height: 24px;
 
     font-family: monospace;
@@ -30,9 +30,9 @@ const FILE_RENDER_STYLES = `
     .file-header {
         display: flex;
         align-items: center;
-        justify-content: start;
+        justify-content: space-between;
         padding: var(--size-padding-default) var(--size-padding-large);
-        gap: var(--size-padding-default);
+        gap: calc(var(--size-padding-default) * 2);
         background: var(--color-bg-subtle);
         color: var(--color-fg-muted);
         cursor: default;
@@ -87,6 +87,7 @@ const FILE_RENDER_STYLES = `
 
         &.file-line-sum {
             background: color-mix(in srgb, var(--color-fg-active) 20%, transparent);
+            cursor: pointer;
         }
 
         &:active, &:focus {
@@ -120,22 +121,24 @@ const FILE_RENDER_STYLES = `
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: calc(var(--size-padding-code) / 2);
+            justify-content: flex-end;
+            gap: 0;
             height: var(--size-file-line-height);
             max-width: var(--size-file-line-num);
             min-width: var(--size-file-line-num);
 
-            .line-num-base, .line-num-head {
+            .line-num-head {
                 display: flex;
-                max-width: calc(var(--size-file-line-num) / 2 - var(--size-padding-code) / 4);
-                min-width: calc(var(--size-file-line-num) / 2 - var(--size-padding-code) / 4);
                 text-overflow: ellipsis;
                 overflow: auto hidden;
                 padding: 0;
                 text-align: end;
                 justify-content: end;
                 align-items: center;
+            }
+
+            .line-num-base {
+              display: none;
             }
         }
     }
@@ -188,7 +191,7 @@ class FileView extends HTMLElement {
 
   get params() {
     const urlParams = new URLSearchParams(window.location.search);
-    const attrParams = {
+    return {
       auth:
         this.getAttribute(FileView.ATTR_AUTH) ??
         urlParams.get(FileView.ATTR_AUTH) ??
@@ -205,10 +208,6 @@ class FileView extends HTMLElement {
       lines:
         this.getAttribute(FileView.ATTR_LINES) ??
         urlParams.get(FileView.ATTR_LINES),
-    };
-    return {
-      ...attrParams,
-      // fileUrlPath: `${attrParams.repo}/blob/${attrParams.ref}/${attrParams.file}#${attrParams.lines ?? ''}`
     };
   }
 
@@ -246,17 +245,25 @@ class FileView extends HTMLElement {
             data,
           }
         ) => {
-          if (data.type == "file") {
+          const minFrom = 1;
+          const maxTo = Number.POSITIVE_INFINITY;
+          const [from, to] = lines
+            ?.split("-")
+            .map((l) =>
+              Math.min(
+                Math.max(Number(l.match(/L?(\d+)/)?.[1]), minFrom),
+                maxTo
+              )
+            ) ?? [minFrom, maxTo];
+          if (
+            data.type == "file" &&
+            Number.isSafeInteger(from) &&
+            Number.isSafeInteger(to)
+          ) {
             this.innerHTML = FILE_RENDER_STYLES; // clear existing file
-            const [from, to] = lines
-              ?.split("-")
-              .map((l) => Number(l.match(/L(d+)/)?.[1])) ?? [
-                0,
-                Number.POSITIVE_INFINITY,
-              ];
             this.appendChild(this.convertFileToHtml(data, { from, to }));
           } else {
-            throw `No file found '${file}': ${fileApiUrl}`;
+            throw `No file found '${file}' L'${from}'-L'${to}': ${fileApiUrl}`;
           }
         }
       )
@@ -273,55 +280,70 @@ class FileView extends HTMLElement {
    */
   convertFileToHtml(data, lineNum) {
     // patch lines
+    const tokenNL = "\n";
     const fileContent = atob(data.content);
-    const fileLines = fileContent.split("\n");
+    const fileLines = fileContent.split(tokenNL);
+    if (fileContent.endsWith(tokenNL)) fileLines.pop();
+    const fileLinesCount = fileLines.length;
+
     const fileLinesVisible = fileLines.filter(
       (_, i) => i + 1 >= lineNum.from && i < lineNum.to
     );
-    this._componentCode = fileLinesVisible.join("\n");
-    // code file line elements
-    const lineFileRenders = fileLinesVisible.map((line, i) =>
-      this.createFileLine(line, lineNum.from + i, lineNum.from + i)
-    );
+    this._componentCode = fileLinesVisible.join(tokenNL);
 
     const fileLinesVisibleCount = fileLinesVisible.length;
     const fileLinesVisibleIncrement = Math.floor(fileLinesVisibleCount / 2);
 
+    // code file line elements
+    const lineFileRenders = fileLinesVisible.map((line, i) => {
+      const codeLineNum = lineNum.from + i;
+      return this.createFileLine(line, codeLineNum, codeLineNum);
+    });
+
     // prepend more code above line
+    const fileLinesAboveEnd = Math.max(lineNum.from - 1, 0);
     const fileLinesAboveStart =
-      lineNum.from - Math.min(lineNum.from, fileLinesVisibleIncrement);
-    if (fileLinesAboveStart) {
-      const fileLinesAboveEnd = lineNum.from - 1;
+      lineNum.from - Math.min(fileLinesAboveEnd, fileLinesVisibleIncrement);
+    const createExpandCodeLine = (
+      /** @type {number} */ from,
+      /** @type {number} */ to
+    ) => {
+      return this.createFileLine(`Expand lines ${from} to ${to}`, 0, 0);
+    };
+    if (fileLinesAboveEnd) {
       lineFileRenders.unshift(
-        this.createFileLine(
-          `L${fileLinesAboveStart}-L${fileLinesAboveEnd}`,
-          fileLinesAboveStart,
-          fileLinesAboveEnd
-        )
+        createExpandCodeLine(fileLinesAboveStart, fileLinesAboveEnd)
       );
     }
     // append more code below line
+    const fileLinesBelowStart = lineNum.to + 1;
     const fileLinesBelowEnd =
-      lineNum.to +
-      Math.min(fileLines.length - lineNum.to, fileLinesVisibleIncrement);
-    if (fileLinesBelowEnd) {
-      const fileLinesBelowStart = lineNum.to + 1;
+      fileLinesBelowStart +
+      Math.min(fileLinesCount - fileLinesBelowStart, fileLinesVisibleIncrement);
+
+    if (fileLinesBelowStart < fileLinesCount) {
+      lineFileRenders.push(
+        createExpandCodeLine(fileLinesBelowStart, fileLinesBelowEnd)
+      );
+    } else if (!fileContent.endsWith(tokenNL)) {
       lineFileRenders.push(
         this.createFileLine(
-          `L${fileLinesBelowStart}-L${fileLinesBelowEnd}`,
-          fileLinesBelowStart,
+          DiffView.RENDER.TOKEN_LINE_NIL,
+          fileLinesBelowEnd,
           fileLinesBelowEnd
         )
       );
     }
 
     // view header elems
+    const fileUrl = `${data.html_url}#L${lineNum.from}-L${lineNum.to}`;
     const headerElems = [
       `<div class="file-header">`,
-      `<span class="file-summary-count">${fileLines.length} total line${fileLines.length === 1 ? "" : "s"
-      }</span>`,
-      `<a class="file-filename" tabindex="0" href=${data.html_url} target="_blank">${data.name}</a>`,
-      `<span class="${FileView.RENDER.CLS_COPY_BTN} ${FileView.RENDER.CLS_ICON_SET}" title="Copy file lines">${FileView.RENDER.TEXT_COPY_BTN}</span>`,
+      `<span class="${FileView.RENDER.CLS_COPY_BTN} ${FileView.RENDER.CLS_ICON_SET}" title="Copy visible lines">${FileView.RENDER.TEXT_COPY_BTN}</span>`,
+      `<span class="file-summary-count">Viewing ${fileLinesVisibleCount} of ${
+        fileLines.length
+      } line${fileLines.length === 1 ? "" : "s"}</span>`,
+      `<a class="file-filename" title="Open file in github" tabindex="0" href="${fileUrl}" target="_blank">${data.name}</a>`,
       `</div>`,
     ];
 
@@ -349,8 +371,8 @@ class FileView extends HTMLElement {
           ? FileView.RENDER.CLS_LINE_NIL
           : FileView.RENDER.CLS_LINE_SUM
         : lineNumBase
-          ? FileView.RENDER.CLS_LINE_DEL
-          : FileView.RENDER.CLS_LINE_ADD;
+        ? FileView.RENDER.CLS_LINE_DEL
+        : FileView.RENDER.CLS_LINE_ADD;
 
     // use native inner text escape to handle possible html code insertion
     const codeContainer = document.createElement("pre");
@@ -358,17 +380,20 @@ class FileView extends HTMLElement {
     if (isEmptyLine)
       codeContainer.classList.add(
         FileView.RENDER.CLS_ICON_SET,
-        FileView.RENDER.TOKEN_LINE_NIL
+        FileView.RENDER.CLS_LINE_NIL
       );
     codeContainer.innerText =
-      (isEmptyLine && "remove_circle_outline") ||
-      lineContent.replace(/(.)/, (s) => `${s} `);
+      (isEmptyLine && "remove_circle_outline") || " " + lineContent;
 
     return `
 <div class="file-line ${lineClass}" tabindex="0">
   <span class="file-line-num">
-      <span class="line-num-base">${(!isEmptyLine && lineNumBase) || ""}</span>
-      <span class="line-num-head">${(!isEmptyLine && lineNumHead) || ""}</span>
+      <span class="line-num-base">${
+        (!isEmptyLine && lineNumBase) || "..."
+      }</span>
+      <span class="line-num-head">${
+        (!isEmptyLine && lineNumHead) || "..."
+      }</span>
   </span>
   ${codeContainer.outerHTML}
 </div>
