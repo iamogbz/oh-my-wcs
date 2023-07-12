@@ -415,10 +415,10 @@ class FileView extends HTMLElement {
 <div tabindex="0" class="file-line ${lineClass} ${lineClasses}" ${attrHtml}>
   <span class="file-line-num">
       <span class="line-num-base">${
-        (!isEmptyLine && lineNumBase) || "..."
+        isEmptyLine ? "" : (lineNumBase || "...")
       }</span>
       <span class="line-num-head">${
-        (!isEmptyLine && lineNumHead) || "..."
+        isEmptyLine ? "" : (lineNumHead || "...")
       }</span>
   </span>
   ${codeContainer.outerHTML}
