@@ -23,5 +23,8 @@ Show the difference between two commits for a single file in github style
 
 __NOTE__: Any attributes not provided will fallback to url parameters of the same name.
 
+![sample image][sample-img]
+
 <!-- Links -->
 [gh-token]: https://github.com/settings/tokens
+[sample-img]: https://github.com/iamogbz/oh-my-wcs/assets/2528959/66319588-8e14-4b20-9d92-fa3109b84546

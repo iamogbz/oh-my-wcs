@@ -21,7 +21,10 @@ Show the raw contents of a single text file with line numbers for easy embedding
 <github-file-view repo="iamogbz/portmanteaux" file="src/components/Portmanteaux/useWordList.ts" head="HEAD" auth="https://github.com/settings/tokens" />
 ```
 
+![sample image][sample-img]
+
 __NOTE__: Any attributes not provided will fallback to url parameters of the same name.
 
 <!-- Links -->
 [gh-token]: https://github.com/settings/tokens
+[sample-img]: https://user-images.githubusercontent.com/2528959/252833122-4ce58a8f-a8ed-4567-9e52-316af55dc6a7.png
