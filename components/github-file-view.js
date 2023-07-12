@@ -156,6 +156,7 @@ class FileView extends HTMLElement {
   static RENDER = {
     CLS_ICON_SET: "material-icons-round",
     CLS_COPY_BTN: "copy-filename",
+    CLS_EXPAND_LINE: "expand-line",
     CLS_LINE_ADD: "file-line-add",
     CLS_LINE_DEL: "file-line-del",
     CLS_LINE_NIL: "file-line-nil",
@@ -211,6 +212,22 @@ class FileView extends HTMLElement {
     };
   }
 
+  get paramLines() {
+    const minFrom = 1;
+    const maxTo = Number.POSITIVE_INFINITY;
+    const [from, to] = this.params.lines
+      ?.split("-")
+      .map((l) =>
+        Math.min(Math.max(Number(l.match(/L?(\d+)/)?.[1]), minFrom), maxTo)
+      ) ?? [minFrom, maxTo];
+    return { from, to };
+  }
+
+  get lines() {
+    if (!this._lines) this._lines = this.paramLines;
+    return this._lines;
+  }
+
   connectedCallback() {
     let hasRequiredAttributes = true;
     const { ...requiredAttrs } = this.params;
@@ -220,7 +237,7 @@ class FileView extends HTMLElement {
     });
 
     if (hasRequiredAttributes) {
-      this.render();
+      this.fetchRender();
     } else {
       const prettyJson = JSON.stringify(requiredAttrs, null, 2);
       this.innerHTML = `<p>Missing some parameters</p><pre><code>${prettyJson}</code><pre>`;
@@ -230,8 +247,8 @@ class FileView extends HTMLElement {
   /**
    * Fetch and render the file
    */
-  async render() {
-    const { auth, file, repo, ref, lines } = this.params;
+  async fetchRender() {
+    const { auth, file, repo, ref } = this.params;
     const fileApiUrl = `https://api.github.com/repos/${repo}/contents/${file}?ref=${ref}`;
 
     await this._deps;
@@ -239,38 +256,35 @@ class FileView extends HTMLElement {
     const octokit = new Octokit({ auth });
     octokit
       .request(`GET ${fileApiUrl}`)
-      .then(
-        (
-          /** @type {{ data: Record<'content'|'name'|'path'|'html_url'|'type', string>}}} */ {
-            data,
-          }
-        ) => {
-          const minFrom = 1;
-          const maxTo = Number.POSITIVE_INFINITY;
-          const [from, to] = lines
-            ?.split("-")
-            .map((l) =>
-              Math.min(
-                Math.max(Number(l.match(/L?(\d+)/)?.[1]), minFrom),
-                maxTo
-              )
-            ) ?? [minFrom, maxTo];
-          if (
-            data.type == "file" &&
-            Number.isSafeInteger(from) &&
-            Number.isSafeInteger(to)
-          ) {
-            this.innerHTML = FILE_RENDER_STYLES; // clear existing file
-            this.appendChild(this.convertFileToHtml(data, { from, to }));
-          } else {
-            throw `No file found '${file}' L'${from}'-L'${to}': ${fileApiUrl}`;
-          }
-        }
-      )
+      .then(this.renderFrom.bind(this))
       .catch((/** @type {Error} */ error) => {
         console.error(error);
         this.innerHTML = `<p>Error loading file</p>`;
       });
+  }
+
+  /**
+   * @param {{ data: Record<"content" | "name" | "path" | "html_url" | "type", string> | undefined}} apiResponse
+   */
+  renderFrom({ data }) {
+    if (!data) return;
+    this._data = data;
+
+    const { file, repo, ref } = this.params;
+    const { from, to } = this.lines;
+
+    const fileApiUrl = `https://api.github.com/repos/${repo}/contents/${file}?ref=${ref}`;
+
+    if (
+      data.type == "file" &&
+      Number.isSafeInteger(from) &&
+      Number.isSafeInteger(to)
+    ) {
+      this.innerHTML = FILE_RENDER_STYLES; // clear existing file
+      this.appendChild(this.convertFileToHtml(data, { from, to }));
+    } else {
+      throw `Unable to render file '${file}' L'${from}'-L'${to}': ${fileApiUrl}`;
+    }
   }
 
   /**
@@ -308,7 +322,13 @@ class FileView extends HTMLElement {
       /** @type {number} */ from,
       /** @type {number} */ to
     ) => {
-      return this.createFileLine(`Expand lines ${from} to ${to}`, 0, 0);
+      return this.createFileLine(
+        `Expand lines ${from} to ${to}`,
+        0,
+        0,
+        FileView.RENDER.CLS_EXPAND_LINE,
+        `data-line-from=${from} data-line-to=${to}`
+      );
     };
     if (fileLinesAboveEnd) {
       lineFileRenders.unshift(
@@ -328,7 +348,7 @@ class FileView extends HTMLElement {
     } else if (!fileContent.endsWith(tokenNL)) {
       lineFileRenders.push(
         this.createFileLine(
-          DiffView.RENDER.TOKEN_LINE_NIL,
+          FileView.RENDER.TOKEN_LINE_NIL,
           fileLinesBelowEnd,
           fileLinesBelowEnd
         )
@@ -348,21 +368,27 @@ class FileView extends HTMLElement {
     ];
 
     // wrapper elem
-    const diffHtml = document.createElement("div");
-    diffHtml.className = "file-wrapper";
-    diffHtml.innerHTML = [...headerElems, ...lineFileRenders].join("");
+    const lineHtml = document.createElement("div");
+    lineHtml.className = "file-wrapper";
+    lineHtml.innerHTML = [...headerElems, ...lineFileRenders].join("");
 
     this.setupCopyButton(
-      diffHtml.querySelector(`.${FileView.RENDER.CLS_COPY_BTN}`)
+      lineHtml.querySelector(`.${FileView.RENDER.CLS_COPY_BTN}`)
     );
 
-    return diffHtml;
+    this.setupExpandLines(
+      lineHtml.querySelectorAll(`.${FileView.RENDER.CLS_EXPAND_LINE}`)
+    );
+
+    return lineHtml;
   }
 
   createFileLine(
     /** @type {string} */ lineContent,
     /** @type {number} */ lineNumBase = 0,
-    /** @type {number} */ lineNumHead = 0
+    /** @type {number} */ lineNumHead = 0,
+    /** @type {string?} */ lineClasses = "",
+    /** @type {string?} */ attrHtml = ""
   ) {
     const isEmptyLine = lineContent.startsWith(FileView.RENDER.TOKEN_LINE_NIL);
     const lineClass =
@@ -386,7 +412,7 @@ class FileView extends HTMLElement {
       (isEmptyLine && "remove_circle_outline") || " " + lineContent;
 
     return `
-<div class="file-line ${lineClass}" tabindex="0">
+<div tabindex="0" class="file-line ${lineClass} ${lineClasses}" ${attrHtml}>
   <span class="file-line-num">
       <span class="line-num-base">${
         (!isEmptyLine && lineNumBase) || "..."
@@ -459,6 +485,26 @@ class FileView extends HTMLElement {
       } finally {
         resetButtonText();
       }
+    });
+  }
+
+  /**
+   * @param {NodeListOf<HTMLElement>} expandLineElements
+   */
+  setupExpandLines(expandLineElements) {
+    expandLineElements.forEach((elem) => {
+      elem.addEventListener("click", (e) => {
+        e.preventDefault();
+        const lineFrom = Number(elem.dataset.lineFrom);
+        const lineTo = Number(elem.dataset.lineTo);
+        if (lineFrom < this.lines.from) {
+          this.lines.from = lineFrom;
+          this.renderFrom({ data: this._data });
+        } else if (lineTo > this.lines.to) {
+          this.lines.to = lineTo;
+          this.renderFrom({ data: this._data });
+        }
+      });
     });
   }
 }

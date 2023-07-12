@@ -347,13 +347,15 @@ class DiffView extends HTMLElement {
       ...Array(DiffView.RENDER.CHANGEBAR_STOPS)
         .fill(null)
         .map((_, i) => {
-          return `<span class="${DiffView.RENDER.CLS_ICON_SET
-            } change-bar-stop-${i} ${i < changeSummaryCountAdd
+          return `<span class="${
+            DiffView.RENDER.CLS_ICON_SET
+          } change-bar-stop-${i} ${
+            i < changeSummaryCountAdd
               ? DiffView.RENDER.CLS_LINE_ADD
               : i - changeSummaryCountAdd < changeSummaryCountDel
-                ? DiffView.RENDER.CLS_LINE_DEL
-                : DiffView.RENDER.CLS_LINE_NIL
-            }">square</span>`;
+              ? DiffView.RENDER.CLS_LINE_DEL
+              : DiffView.RENDER.CLS_LINE_NIL
+          }">square</span>`;
         }),
       `</span>`,
       `<a class="diff-filename" title="Open in github comparison" tabindex="0" href=${compareLink} target="_blank">${filename}</a>`,
@@ -385,8 +387,8 @@ class DiffView extends HTMLElement {
           ? DiffView.RENDER.CLS_LINE_NIL
           : DiffView.RENDER.CLS_LINE_SUM
         : lineNumBase
-          ? DiffView.RENDER.CLS_LINE_DEL
-          : DiffView.RENDER.CLS_LINE_ADD;
+        ? DiffView.RENDER.CLS_LINE_DEL
+        : DiffView.RENDER.CLS_LINE_ADD;
 
     // use native inner text escape to handle possible html code insertion
     const codeContainer = document.createElement("pre");
