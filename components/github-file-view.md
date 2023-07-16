@@ -9,16 +9,16 @@ Show the raw contents of a single text file with line numbers for easy embedding
 | `component-name` | `"github-file-view"` | __CONSTANT__             |
 | `repo`           | `string`             | Github `user/repo`       |
 | `file`           | `string`             | Git file path            |
-| `ref`            | `string`             | Git <REF>                |
+| `ref`            | `string`             | Git #REF#                |
 | `lines`          | `string?`            | e.g. `L1-L20`            |
 | `auth`           | `string?`            | Github [token][gh-token] |
 
 ## Example
 
 ```js
-<script src="https://raw.githubusercontent.com/iamogbz/oh-my-wcs/main/components/github-file-view.js" />
+<script src="https://cdn.jsdelivr.net/gh/iamogbz/oh-my-wcs@main/components/github-file-view.js"></script>
 
-<github-file-view repo="iamogbz/portmanteaux" file="src/components/Portmanteaux/useWordList.ts" head="HEAD" auth="https://github.com/settings/tokens" />
+<github-file-view repo="iamogbz/portmanteaux" file="src/components/Portmanteaux/useWordList.ts" head="HEAD" auth="https://github.com/settings/tokens" ></github-file-view>
 ```
 
 ![sample image][sample-img]
