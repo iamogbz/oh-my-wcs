@@ -11,6 +11,8 @@ class MarkdownView extends HTMLElement {
   ];
 
   static ATTR_FILE = "url";
+  static ATTR_LINE_FROM = "from";
+  static ATTR_LINE_TO = "to";
 
   constructor() {
     super();
@@ -21,7 +23,11 @@ class MarkdownView extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return [MarkdownView.ATTR_FILE];
+    return [
+      MarkdownView.ATTR_FILE,
+      MarkdownView.ATTR_LINE_FROM,
+      MarkdownView.ATTR_LINE_TO,
+    ];
   }
 
   connectedCallback() {
@@ -35,32 +41,51 @@ class MarkdownView extends HTMLElement {
    * @param {string} newValue
    */
   attributeChangedCallback(name, oldValue, newValue) {
-    if (name === MarkdownView.ATTR_FILE && oldValue !== newValue) {
+    if (MarkdownView.observedAttributes.includes(name) && oldValue !== newValue) {
       this.render();
     }
   }
 
   render() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const mdUrl =
-      this.getAttribute(MarkdownView.ATTR_FILE) ??
-      urlParams.get(MarkdownView.ATTR_FILE);
+    const mdUrl = this.params[MarkdownView.ATTR_FILE];
 
     if (!mdUrl) {
       this._root.innerHTML = `<p>No URL provided</p>`;
       return;
     }
 
+    const lineFrom =
+      Number(this.params[MarkdownView.ATTR_LINE_FROM]) ||
+      Number.NEGATIVE_INFINITY;
+    const lineTo =
+      Number(this.params[MarkdownView.ATTR_LINE_TO]) ||
+      Number.POSITIVE_INFINITY;
+
     fetch(mdUrl)
       .then((response) => response.text())
       .then(async (data) => {
-        const htmlContent = await this.convertMarkdownToHtml(data);
+        const lineSep = "\n";
+        const mdLines = data
+          .split(lineSep)
+          .filter((_, i) => i + 1 >= lineFrom && i < lineTo)
+          .join(lineSep);
+        const htmlContent = await this.convertMarkdownToHtml(mdLines);
         this._root.innerHTML = `${MARKDOWN_RENDER_STYLES}<div class="markdown-body">${htmlContent}</div>`;
       })
       .catch((error) => {
         console.error(error);
         this._root.innerHTML = `<p>Error loading markdown</p>`;
       });
+  }
+
+  get params() {
+    const urlParams = new URLSearchParams(window.location.search);
+    /** @type {Record<string, string | null>} */ const attrParams = {};
+    MarkdownView.observedAttributes.forEach((attrName) => {
+      attrParams[attrName] =
+        this.getAttribute(attrName) ?? urlParams.get(attrName);
+    });
+    return attrParams;
   }
 
   /**
