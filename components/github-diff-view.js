@@ -243,7 +243,7 @@ class DiffView extends HTMLElement {
     };
     return {
       ...attrParams,
-      compareUrlPath: `${attrParams.repo}/compare/${attrParams.head}...${attrParams.base}`,
+      compareUrlPath: `${attrParams.repo}/compare/${attrParams.base}...${attrParams.head}`,
     };
   }
 

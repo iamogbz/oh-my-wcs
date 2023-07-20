@@ -11,5 +11,5 @@ Try out any component using the demo links below, set the component name via the
 ### Components
 
 * [`github-md-view`](https://ogbizi.com/oh-my-wcs/?component-name=github-md-view&url=components/github-md-view.md): 👈🏾 demo
-* [`github-diff-view`](https://ogbizi.com/oh-my-wcs/?component-name=github-md-view&url=components/github-diff-view.md): [demo](https://ogbizi.com/oh-my-wcs/?component-name=github-diff-view&head=f1c3c32&base=9dfe892&repo=tophat/webext-training&file=package.json)
+* [`github-diff-view`](https://ogbizi.com/oh-my-wcs/?component-name=github-md-view&url=components/github-diff-view.md): [demo](https://ogbizi.com/oh-my-wcs/?component-name=github-diff-view&head=9dfe892&base=f1c3c32&repo=tophat/webext-training&file=package.json)
 * [`github-file-view`](https://ogbizi.com/oh-my-wcs/?component-name=github-md-view&url=components/github-file-view.md): [demo](https://ogbizi.com/oh-my-wcs/?component-name=github-file-view&ref=HEAD&repo=iamogbz/oh-my-wcs&file=components/github-diff-view.js&lines=L10-L42)
