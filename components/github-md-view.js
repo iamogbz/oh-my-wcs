@@ -5,10 +5,12 @@ const MARKDOWN_RENDER_STYLES = `
 // Define the web component
 class MarkdownView extends HTMLElement {
   static NAME = "github-md-view";
-  static DEPS = [
+  static DEPS = {
     // https://marked.js.org/
-    "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
-  ];
+    "https://cdn.jsdelivr.net/npm/marked@5.1.2/marked.min.js": {
+      marked: "marked",
+    },
+  };
 
   static ATTR_FILE = "url";
   static ATTR_LINE_FROM = "from";
@@ -17,7 +19,7 @@ class MarkdownView extends HTMLElement {
   constructor() {
     super();
     this._deps = Promise.all(
-      MarkdownView.DEPS.map((scriptUrl) => import(scriptUrl))
+      Object.keys(MarkdownView.DEPS).map((scriptUrl) => import(scriptUrl))
     );
     this._root = this.attachShadow({ mode: "open" });
   }
@@ -41,7 +43,10 @@ class MarkdownView extends HTMLElement {
    * @param {string} newValue
    */
   attributeChangedCallback(name, oldValue, newValue) {
-    if (MarkdownView.observedAttributes.includes(name) && oldValue !== newValue) {
+    if (
+      MarkdownView.observedAttributes.includes(name) &&
+      oldValue !== newValue
+    ) {
       this.render();
     }
   }
