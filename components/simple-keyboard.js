@@ -209,21 +209,21 @@ class SimpleKeyboard extends HTMLElement {
         keyWrapper.addEventListener("mousedown", (e) => this.selectKey(k, e));
         keyWrapper.addEventListener("mouseup", (e) => this.releaseKey(k, e));
         const selectKeys = ["Enter", "Spacebar", " "];
-        // keyWrapper.addEventListener(
-        //   "keydown",
-        //   (e) => {
-        //     if (selectKeys.includes(e.key)) {
-        //       e.preventDefault();
-        //       this.selectKey(k, e);
-        //     }
-        //   },
-        //   { capture: true }
-        // );
+        keyWrapper.addEventListener(
+          "keydown",
+          (e) => {
+            if (selectKeys.includes(e.key)) {
+              e.stopPropagation();
+              this.selectKey(k, e);
+            }
+          },
+          { capture: true }
+        );
         keyWrapper.addEventListener(
           "keyup",
           (e) => {
             if (selectKeys.includes(e.key)) {
-              e.preventDefault();
+              e.stopPropagation();
               this.releaseKey(k, e);
             }
           },
