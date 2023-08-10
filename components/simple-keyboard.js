@@ -203,12 +203,22 @@ class SimpleKeyboard extends HTMLElement {
           `data-keyname-${k.toLowerCase().trim() || "space"}`
         );
         keyWrapper.innerHTML = keyName || k;
-        keyWrapper.title = k
+        keyWrapper.title = k;
         keyWrapper.dataset.key = k;
 
         keyWrapper.addEventListener("mousedown", (e) => this.selectKey(k, e));
         keyWrapper.addEventListener("mouseup", (e) => this.releaseKey(k, e));
-        keyWrapper.addEventListener("click", (e) => this.releaseKey(k, e));
+        const selectKeys = ["Enter", "Spacebar", " "];
+        keyWrapper.addEventListener("keydown", (e) => {
+          if (selectKeys.includes(e.key)) {
+            this.selectKey(k, e);
+          }
+        });
+        keyWrapper.addEventListener("keyup", (e) => {
+          if (selectKeys.includes(e.key)) {
+            this.releaseKey(k, e);
+          }
+        });
 
         keyLineWrapper.appendChild(keyWrapper);
       });
