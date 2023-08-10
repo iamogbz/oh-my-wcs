@@ -183,7 +183,7 @@ class SimpleKeyboard extends HTMLElement {
       keyLine.forEach((k) => {
         const keyWrapper = document.createElement("div");
         keyWrapper.className = SimpleKeyboard.CLS_KF;
-        keyWrapper.setAttribute("tabindex", "0");
+        if (k) keyWrapper.setAttribute("tabindex", "0");
         if (this.activeKeys.includes(k)) {
           keyWrapper.ariaCurrent = "true";
         }
