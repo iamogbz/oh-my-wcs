@@ -14,6 +14,14 @@ const COMPONENT_STYLES = `
   font-family: monospace;
   line-height: 1em;
   position: relative;
+
+  &[aria-disabled] .keyfield,
+  .keyfield[aria-disabled] {
+    border-color: transparent;
+    border-style: dotted;
+    opacity: 0.5;
+    pointer-events: none;
+  }
 }
 .keyrow {
   align-items: center;
@@ -42,18 +50,11 @@ const COMPONENT_STYLES = `
   text-transform: uppercase;
   user-select: none;
 
-  &[active] {
+  &[aria-current] {
     font-weight: 900;
   }
 
-  &[disabled] {
-    border-color: transparent;
-    border-style: dotted;
-    opacity: 0.5;
-    pointer-events: none;
-  }
-
-  &[selected] {
+  &[aria-selected] {
     background-color: rgba(0,0,0,0.1);
     border-color: initial;
   }
@@ -176,13 +177,13 @@ class SimpleKeyboard extends HTMLElement {
         keyWrapper.className = SimpleKeyboard.CLS_KF;
         keyWrapper.setAttribute("tabindex", "0");
         if (this.activeKeys.includes(k)) {
-          keyWrapper.setAttribute("active", "true");
+          keyWrapper.ariaCurrent = "true";
         }
         if (!k || this.disabledKeys.includes(k)) {
-          keyWrapper.setAttribute("disabled", "true");
+          keyWrapper.ariaDisabled = "true";
         }
         if (this.selectedKeys.includes(k)) {
-          keyWrapper.setAttribute("selected", "true");
+          keyWrapper.ariaSelected = "true";
         }
         const keyName = this.getAttribute(
           `data-keyname-${k.toLowerCase().trim() || "space"}`
@@ -209,6 +210,7 @@ class SimpleKeyboard extends HTMLElement {
    * @param {Event | undefined} e
    */
   selectKey = (key, e) => {
+    if (this.ariaDisabled) return;
     if (!this.allowedKeys.includes(key)) return;
     if (this.disabledKeys.includes(key)) return;
     e?.preventDefault();
