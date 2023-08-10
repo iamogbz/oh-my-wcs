@@ -79,6 +79,7 @@ class SimpleKeyboard extends HTMLElement {
   static ATTR_KEYS_ACTIVE = "keys-active";
   static ATTR_KEYS_DISABLED = "keys-disabled";
   static ATTR_KEYS_SELECTED = "keys-selected";
+  static ATTR_ARIA_DISABLED = "aria-disabled";
 
   constructor() {
     super();
@@ -94,6 +95,7 @@ class SimpleKeyboard extends HTMLElement {
       SimpleKeyboard.ATTR_KEYS_ACTIVE,
       SimpleKeyboard.ATTR_KEYS_DISABLED,
       SimpleKeyboard.ATTR_KEYS_SELECTED,
+      SimpleKeyboard.ATTR_ARIA_DISABLED,
     ];
   }
 
@@ -131,7 +133,10 @@ class SimpleKeyboard extends HTMLElement {
   }
 
   get disabledKeys() {
-    return this.decodeKeys(SimpleKeyboard.ATTR_KEYS_DISABLED);
+    if (this.ariaDisabled) return this.allowedKeys;
+    return this.decodeKeys(SimpleKeyboard.ATTR_KEYS_DISABLED).concat(
+      this.ariaDisabled ? this.allowedKeys : []
+    );
   }
 
   connectedCallback() {
@@ -166,6 +171,10 @@ class SimpleKeyboard extends HTMLElement {
     const keyboardWrapper = document.createElement("div");
     keyboardWrapper.className = SimpleKeyboard.CLS_KB;
     keyboardWrapper.setAttribute("tabindex", "-1");
+    [SimpleKeyboard.ATTR_ARIA_DISABLED].forEach((attrName) => {
+      const attrVal = this.getAttribute(attrName);
+      if (attrVal) keyboardWrapper.setAttribute(attrName, attrVal);
+    });
 
     this.keyboard.forEach((keyLine) => {
       const keyLineWrapper = document.createElement("div");
@@ -210,7 +219,6 @@ class SimpleKeyboard extends HTMLElement {
    * @param {Event | undefined} e
    */
   selectKey = (key, e) => {
-    if (this.ariaDisabled) return;
     if (!this.allowedKeys.includes(key)) return;
     if (this.disabledKeys.includes(key)) return;
     e?.preventDefault();
