@@ -79,6 +79,7 @@ class SimpleKeyboard extends HTMLElement {
   static ATTR_KEYS_ACTIVE = "keys-active";
   static ATTR_KEYS_DISABLED = "keys-disabled";
   static ATTR_KEYS_SELECTED = "keys-selected";
+  static ATTR_KEYS_TABINDEX = "keys-tabindex";
   static ATTR_ARIA_DISABLED = "aria-disabled";
 
   constructor() {
@@ -95,6 +96,7 @@ class SimpleKeyboard extends HTMLElement {
       SimpleKeyboard.ATTR_KEYS_ACTIVE,
       SimpleKeyboard.ATTR_KEYS_DISABLED,
       SimpleKeyboard.ATTR_KEYS_SELECTED,
+      SimpleKeyboard.ATTR_KEYS_TABINDEX,
       SimpleKeyboard.ATTR_ARIA_DISABLED,
     ];
   }
@@ -183,7 +185,11 @@ class SimpleKeyboard extends HTMLElement {
       keyLine.forEach((k) => {
         const keyWrapper = document.createElement("div");
         keyWrapper.className = SimpleKeyboard.CLS_KF;
-        if (k) keyWrapper.setAttribute("tabindex", "0");
+        if (k)
+          keyWrapper.setAttribute(
+            "tabindex",
+            this.params[SimpleKeyboard.ATTR_KEYS_TABINDEX] ?? "0"
+          );
         if (this.activeKeys.includes(k)) {
           keyWrapper.ariaCurrent = "true";
         }
@@ -197,6 +203,7 @@ class SimpleKeyboard extends HTMLElement {
           `data-keyname-${k.toLowerCase().trim() || "space"}`
         );
         keyWrapper.innerHTML = keyName || k;
+        keyWrapper.title = k
         keyWrapper.dataset.key = k;
 
         keyWrapper.addEventListener("mousedown", (e) => this.selectKey(k, e));

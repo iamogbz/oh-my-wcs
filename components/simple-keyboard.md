@@ -9,6 +9,7 @@ Render a markdown file from a url as html in github style
 | `keys-active`    | `string[]`          | Base 64 encoded JSON string |
 | `keys-disabled`  | `string[]`          | Base 64 encoded JSON string |
 | `keys-selected`  | `string[]`          | Base 64 encoded JSON string |
+| `keys-tabindex`  | `number`            | See `tabindex`              |
 
 ## Example
 
