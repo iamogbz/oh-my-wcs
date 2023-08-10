@@ -54,7 +54,7 @@ const COMPONENT_STYLES = `
     font-weight: 900;
   }
 
-  &[aria-selected="true"] {
+  &[aria-selected="true"], &:focus {
     background-color: rgba(0,0,0,0.1);
     border-color: initial;
   }
@@ -203,12 +203,22 @@ class SimpleKeyboard extends HTMLElement {
           `data-keyname-${k.toLowerCase().trim() || "space"}`
         );
         keyWrapper.innerHTML = keyName || k;
-        keyWrapper.title = k
+        keyWrapper.title = k;
         keyWrapper.dataset.key = k;
 
         keyWrapper.addEventListener("mousedown", (e) => this.selectKey(k, e));
         keyWrapper.addEventListener("mouseup", (e) => this.releaseKey(k, e));
-        keyWrapper.addEventListener("click", (e) => this.releaseKey(k, e));
+        const selectKeys = ["Enter", "Spacebar", " "];
+        keyWrapper.addEventListener(
+          "keyup",
+          (e) => {
+            if (selectKeys.includes(e.key)) {
+              e.stopPropagation();
+              this.releaseKey(k, e);
+            }
+          },
+          { capture: true }
+        );
 
         keyLineWrapper.appendChild(keyWrapper);
       });
