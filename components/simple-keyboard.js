@@ -15,8 +15,8 @@ const COMPONENT_STYLES = `
   line-height: 1em;
   position: relative;
 
-  &[aria-disabled] .keyfield,
-  .keyfield[aria-disabled] {
+  &[aria-disabled="true"] .keyfield,
+  .keyfield[aria-disabled="true"] {
     border-color: transparent;
     border-style: dotted;
     opacity: 0.5;
@@ -50,11 +50,11 @@ const COMPONENT_STYLES = `
   text-transform: uppercase;
   user-select: none;
 
-  &[aria-current] {
+  &[aria-current="true"] {
     font-weight: 900;
   }
 
-  &[aria-selected] {
+  &[aria-selected="true"] {
     background-color: rgba(0,0,0,0.1);
     border-color: initial;
   }
@@ -133,9 +133,8 @@ class SimpleKeyboard extends HTMLElement {
   }
 
   get disabledKeys() {
-    if (this.ariaDisabled) return this.allowedKeys;
     return this.decodeKeys(SimpleKeyboard.ATTR_KEYS_DISABLED).concat(
-      this.ariaDisabled ? this.allowedKeys : []
+      this.ariaDisabled === "true" ? this.allowedKeys : []
     );
   }
 
