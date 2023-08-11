@@ -136,7 +136,9 @@ class SimpleKeyboard extends HTMLElement {
 
   get disabledKeys() {
     return this.decodeKeys(SimpleKeyboard.ATTR_KEYS_DISABLED).concat(
-      this.ariaDisabled === "true" ? this.allowedKeys : []
+      this.getAttribute(SimpleKeyboard.ATTR_ARIA_DISABLED) === "true"
+        ? this.allowedKeys
+        : []
     );
   }
 
@@ -191,13 +193,13 @@ class SimpleKeyboard extends HTMLElement {
             this.params[SimpleKeyboard.ATTR_KEYS_TABINDEX] ?? "0"
           );
         if (this.activeKeys.includes(k)) {
-          keyWrapper.ariaCurrent = "true";
+          keyWrapper.setAttribute("aria-current", "true");
         }
         if (!k || this.disabledKeys.includes(k)) {
-          keyWrapper.ariaDisabled = "true";
+          keyWrapper.setAttribute("aria-disabled", "true");
         }
         if (this.selectedKeys.includes(k)) {
-          keyWrapper.ariaSelected = "true";
+          keyWrapper.setAttribute("aria-selected", "true");
         }
         const keyName = this.getAttribute(
           `data-keyname-${k.toLowerCase().trim() || "space"}`
