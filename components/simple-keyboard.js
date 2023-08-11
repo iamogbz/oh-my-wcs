@@ -14,14 +14,13 @@ const COMPONENT_STYLES = `
   font-family: monospace;
   line-height: 1em;
   position: relative;
-
-  &[aria-disabled="true"] .keyfield,
-  .keyfield[aria-disabled="true"] {
-    border-color: transparent;
-    border-style: dotted;
-    opacity: 0.5;
-    pointer-events: none;
-  }
+}
+.keyboard[aria-disabled="true"] .keyfield,
+.keyfield[aria-disabled="true"] {
+  border-color: transparent;
+  border-style: dotted;
+  opacity: 0.5;
+  pointer-events: none;
 }
 .keyrow {
   align-items: center;
@@ -49,15 +48,13 @@ const COMPONENT_STYLES = `
   text-align: center;
   text-transform: uppercase;
   user-select: none;
-
-  &[aria-current="true"] {
-    font-weight: 900;
-  }
-
-  &[aria-selected="true"], &:focus {
-    background-color: rgba(0,0,0,0.1);
-    border-color: initial;
-  }
+}
+.keyfield[aria-current="true"] {
+  font-weight: 900;
+}
+.keyfield[aria-selected="true"], .keyfield:focus {
+  background-color: rgba(0,0,0,0.1);
+  border-color: initial;
 }
 </style>
 `;
