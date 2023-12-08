@@ -2,6 +2,8 @@ class BoxFold extends HTMLElement {
   static NAME = "box-fold";
   static DEPS = {};
 
+  static DEFAULT_COLOR_BG = "red";
+
   static IDS = {
     CARD: "folded-card",
     CONTENT: "card-content",
@@ -117,8 +119,14 @@ class BoxFold extends HTMLElement {
       this._root.getElementById(BoxFold.IDS.CARD) ??
       document.createElement("div");
     card.setAttribute("id", BoxFold.IDS.CARD);
-    card.style.backgroundColor = this.style.backgroundColor;
-    card.style.backgroundImage = `linear-gradient(45deg, transparent, rgba(0,0,0,0.2))`;
+    card.style.backgroundColor =
+      this.style.backgroundColor || BoxFold.DEFAULT_COLOR_BG;
+    card.style.backgroundImage =
+      (Math.floor(unfoldProgress) && this.style.backgroundImage) ||
+      `linear-gradient(45deg, transparent, rgba(0,0,0,0.2))`;
+    card.style.backgroundPosition = "center";
+    card.style.backgroundRepeat = "no-repeat";
+    card.style.backgroundSize = "cover";
     card.style.position = "relative";
     card.style.height = `${currentHeight}px`;
     card.style.width = `${currentWidth}px`;
