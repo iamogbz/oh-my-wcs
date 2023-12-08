@@ -1,7 +1,11 @@
-class SquareFold extends HTMLElement {
-  static NAME = "square-fold";
-  static CARD_ID = "folded-card";
+class BoxFold extends HTMLElement {
+  static NAME = "box-fold";
   static DEPS = {};
+
+  static IDS = {
+    CARD: "folded-card",
+    FOLD: "unfolding-card",
+  };
 
   static SIZE = {
     MIN_PX: 32,
@@ -25,6 +29,7 @@ class SquareFold extends HTMLElement {
     UNFOLD_LIMIT: "unfold-limit",
     /** Ratio percentage progress from fully folded to completely unfolded */
     UNFOLD_PROGRESS: "unfold-progress",
+    CONTENT: "card-content",
   };
 
   constructor() {
@@ -33,13 +38,13 @@ class SquareFold extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return Object.values(SquareFold.ATTRS);
+    return Object.values(BoxFold.ATTRS);
   }
 
   get params() {
     const urlParams = new URLSearchParams(window.location.search);
     /** @type {Record<string, number | null>} */ const attrParams = {};
-    SquareFold.observedAttributes.forEach((attrName) => {
+    BoxFold.observedAttributes.forEach((attrName) => {
       attrParams[attrName] = Number(
         this.getAttribute(attrName) ?? urlParams.get(attrName)
       );
@@ -58,20 +63,20 @@ class SquareFold extends HTMLElement {
    * @param {string} newValue
    */
   attributeChangedCallback(name, oldValue, newValue) {
-    if (SquareFold.observedAttributes.includes(name) && oldValue !== newValue) {
+    if (BoxFold.observedAttributes.includes(name) && oldValue !== newValue) {
       this.render();
     }
   }
 
   render() {
-    console.log(this.params);
-    const firstUnfoldDir = this.params[SquareFold.ATTRS.FOLDED_FINAL] || 0;
+    // console.log(this.params);
+    const firstUnfoldDir = this.params[BoxFold.ATTRS.FOLDED_FINAL] || 0;
     const foldedHeight =
-      this.params[SquareFold.ATTRS.FOLDED_HEIGHT] || SquareFold.SIZE.MIN_PX;
+      this.params[BoxFold.ATTRS.FOLDED_HEIGHT] || BoxFold.SIZE.MIN_PX;
     const foldedWidth =
-      this.params[SquareFold.ATTRS.FOLDED_WIDTH] || SquareFold.SIZE.MIN_PX;
-    const unfoldLimit = this.params[SquareFold.ATTRS.UNFOLD_LIMIT] || 1;
-    const unfoldProgress = this.params[SquareFold.ATTRS.UNFOLD_PROGRESS] || 0;
+      this.params[BoxFold.ATTRS.FOLDED_WIDTH] || BoxFold.SIZE.MIN_PX;
+    const unfoldLimit = this.params[BoxFold.ATTRS.UNFOLD_LIMIT] || 1;
+    const unfoldProgress = this.params[BoxFold.ATTRS.UNFOLD_PROGRESS] || 0;
     const currentUnfoldProgress = unfoldProgress * unfoldLimit;
     const currentUnfoldCount = Math.floor(currentUnfoldProgress);
     const nextUnfoldProgress = currentUnfoldProgress - currentUnfoldCount;
@@ -82,7 +87,7 @@ class SquareFold extends HTMLElement {
       foldedWidth *
       Math.pow(
         2,
-        firstUnfoldDir == SquareFold.DIR.HORIZONTAL
+        firstUnfoldDir == BoxFold.DIR.HORIZONTAL
           ? higherFoldCount
           : lowerFoldCount
       );
@@ -90,7 +95,7 @@ class SquareFold extends HTMLElement {
       foldedHeight *
       Math.pow(
         2,
-        firstUnfoldDir == SquareFold.DIR.VERTICAL
+        firstUnfoldDir == BoxFold.DIR.VERTICAL
           ? higherFoldCount
           : lowerFoldCount
       );
@@ -106,15 +111,38 @@ class SquareFold extends HTMLElement {
     });
 
     const card =
-      document.getElementById(SquareFold.CARD_ID) ??
+      this._root.getElementById(BoxFold.IDS.CARD) ??
       document.createElement("div");
-    card.setAttribute("id", SquareFold.CARD_ID);
+    card.setAttribute("id", BoxFold.IDS.CARD);
     card.style.backgroundColor = "red";
+    card.style.position = "relative";
     card.style.height = `${currentHeight}px`;
     card.style.width = `${currentWidth}px`;
+
+    const unfold =
+      this._root.getElementById(BoxFold.IDS.FOLD) ??
+      document.createElement("div");
+    unfold.setAttribute("id", BoxFold.IDS.FOLD);
+    unfold.style.backgroundColor = card.style.backgroundColor;
+    const unfoldAngle = nextUnfoldDir ? 180 : 90;
+    const unfoldShade = 1 - nextUnfoldProgress;
+    const unfoldShadeA = `rgba(0,0,0,${unfoldShade / 2})`;
+    const unfoldShadeB = `rgba(0,0,0,${unfoldShade})`;
+    unfold.style.backgroundImage = `linear-gradient(${unfoldAngle}deg, ${unfoldShadeA}, ${unfoldShadeB})`;
+    unfold.style.position = "absolute";
+    unfold.style.height = `${
+      currentHeight * (nextUnfoldDir ? nextUnfoldProgress : 1)
+    }px`;
+    unfold.style.width = `${
+      currentWidth * (nextUnfoldDir ? 1 : nextUnfoldProgress)
+    }px`;
+    unfold.style.marginTop = nextUnfoldDir ? card.style.height : "0";
+    unfold.style.marginLeft = nextUnfoldDir ? "0" : card.style.width;
+
+    card.appendChild(unfold);
     this._root.appendChild(card);
   }
 }
 
 // Define the custom element
-customElements.define(SquareFold.NAME, SquareFold);
+customElements.define(BoxFold.NAME, BoxFold);

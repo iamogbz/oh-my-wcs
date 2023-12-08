@@ -1,4 +1,4 @@
-# Square Fold
+# Box Fold
 
 Render an unfolding square up to a point to reveal contents
 
@@ -14,7 +14,7 @@ Render an unfolding square up to a point to reveal contents
 ## Example
 
 ```js
-<script src="https://cdn.jsdelivr.net/gh/iamogbz/oh-my-wcs@main/components/square-fold.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/iamogbz/oh-my-wcs@main/components/box-fold.js"></script>
 
-<square-fold folded-final="1"></square-fold>
+<box-fold folded-final="1"></box-fold>
 ```
