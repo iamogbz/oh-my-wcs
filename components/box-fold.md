@@ -12,6 +12,10 @@ Render an unfolding square up to a point to reveal contents
 | `unfold-limit`    | `number`            | How many times the card is folded                                   |
 | `unfold-progress` | `number`            | From `0.0` to `1.0`                                                 |
 
+Internal shadow elements inherit the following style properties from the `box-fold` custom element.
+
+`backgroundColor`, `backgroundImage`, `color`, `textAlign`
+
 ## Example
 
 ```js

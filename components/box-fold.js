@@ -104,16 +104,6 @@ class BoxFold extends HTMLElement {
           ? higherFoldCount
           : lowerFoldCount
       );
-    console.log({
-      currentHeight,
-      currentUnfoldCount,
-      currentUnfoldProgress,
-      currentWidth,
-      nextUnfoldDir,
-      nextUnfoldProgress,
-      unfoldLimit,
-      unfoldProgress,
-    });
 
     const card =
       this._root.getElementById(BoxFold.IDS.CARD) ??
@@ -156,11 +146,13 @@ class BoxFold extends HTMLElement {
 
     const content =
       this._root.getElementById(BoxFold.IDS.CONTENT) ??
-      document.createElement("span");
+      document.createElement("pre");
     content.setAttribute("id", BoxFold.IDS.CONTENT);
-    content.innerHTML = this.params[BoxFold.ATTRS.TEXT_CONTENT] ?? "";
+    content.innerText = this.params[BoxFold.ATTRS.TEXT_CONTENT] ?? "";
     content.style.opacity = Math.floor(unfoldProgress).toString();
     content.style.transition = "opacity 0.3s ease-in-out";
+    content.style.color = this.style.color
+    content.style.textAlign = this.style.textAlign;
 
     card.appendChild(unfold);
     card.appendChild(content);
