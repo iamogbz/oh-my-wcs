@@ -4,6 +4,7 @@ class BoxFold extends HTMLElement {
 
   static IDS = {
     CARD: "folded-card",
+    CONTENT: "card-content",
     FOLD: "unfolding-card",
   };
 
@@ -25,11 +26,14 @@ class BoxFold extends HTMLElement {
     FOLDED_HEIGHT: "folded-height",
     /** The fully folded starting width  */
     FOLDED_WIDTH: "folded-width",
+    /** The component style attribute */
+    STYLE: "style",
+    /** The card text content */
+    TEXT_CONTENT: "text-content",
     /** The number of half folds that it takes to unfold fully */
     UNFOLD_LIMIT: "unfold-limit",
     /** Ratio percentage progress from fully folded to completely unfolded */
     UNFOLD_PROGRESS: "unfold-progress",
-    CONTENT: "card-content",
   };
 
   constructor() {
@@ -43,11 +47,10 @@ class BoxFold extends HTMLElement {
 
   get params() {
     const urlParams = new URLSearchParams(window.location.search);
-    /** @type {Record<string, number | null>} */ const attrParams = {};
+    /** @type {Record<string, null | string>} */ const attrParams = {};
     BoxFold.observedAttributes.forEach((attrName) => {
-      attrParams[attrName] = Number(
-        this.getAttribute(attrName) ?? urlParams.get(attrName)
-      );
+      attrParams[attrName] =
+        this.getAttribute(attrName) ?? urlParams.get(attrName);
     });
     return attrParams;
   }
@@ -69,14 +72,14 @@ class BoxFold extends HTMLElement {
   }
 
   render() {
-    // console.log(this.params);
-    const firstUnfoldDir = this.params[BoxFold.ATTRS.FOLDED_FINAL] || 0;
+    const firstUnfoldDir = Number(this.params[BoxFold.ATTRS.FOLDED_FINAL]) || 0;
     const foldedHeight =
-      this.params[BoxFold.ATTRS.FOLDED_HEIGHT] || BoxFold.SIZE.MIN_PX;
+      Number(this.params[BoxFold.ATTRS.FOLDED_HEIGHT]) || BoxFold.SIZE.MIN_PX;
     const foldedWidth =
-      this.params[BoxFold.ATTRS.FOLDED_WIDTH] || BoxFold.SIZE.MIN_PX;
-    const unfoldLimit = this.params[BoxFold.ATTRS.UNFOLD_LIMIT] || 1;
-    const unfoldProgress = this.params[BoxFold.ATTRS.UNFOLD_PROGRESS] || 0;
+      Number(this.params[BoxFold.ATTRS.FOLDED_WIDTH]) || BoxFold.SIZE.MIN_PX;
+    const unfoldLimit = Number(this.params[BoxFold.ATTRS.UNFOLD_LIMIT]) || 1;
+    const unfoldProgress =
+      Number(this.params[BoxFold.ATTRS.UNFOLD_PROGRESS]) || 0;
     const currentUnfoldProgress = unfoldProgress * unfoldLimit;
     const currentUnfoldCount = Math.floor(currentUnfoldProgress);
     const nextUnfoldProgress = currentUnfoldProgress - currentUnfoldCount;
@@ -114,10 +117,14 @@ class BoxFold extends HTMLElement {
       this._root.getElementById(BoxFold.IDS.CARD) ??
       document.createElement("div");
     card.setAttribute("id", BoxFold.IDS.CARD);
-    card.style.backgroundColor = "red";
+    card.style.backgroundColor = this.style.backgroundColor;
+    card.style.backgroundImage = `linear-gradient(45deg, transparent, rgba(0,0,0,0.2))`;
     card.style.position = "relative";
     card.style.height = `${currentHeight}px`;
     card.style.width = `${currentWidth}px`;
+    card.style.display = "flex";
+    card.style.alignItems = "center";
+    card.style.justifyContent = "center";
 
     const unfold =
       this._root.getElementById(BoxFold.IDS.FOLD) ??
@@ -136,10 +143,19 @@ class BoxFold extends HTMLElement {
     unfold.style.width = `${
       currentWidth * (nextUnfoldDir ? 1 : nextUnfoldProgress)
     }px`;
-    unfold.style.marginTop = nextUnfoldDir ? card.style.height : "0";
-    unfold.style.marginLeft = nextUnfoldDir ? "0" : card.style.width;
+    unfold.style.top = nextUnfoldDir ? "100%" : "0";
+    unfold.style.left = nextUnfoldDir ? "0" : "100%";
+
+    const content =
+      this._root.getElementById(BoxFold.IDS.CONTENT) ??
+      document.createElement("span");
+    content.setAttribute("id", BoxFold.IDS.CONTENT);
+    content.innerHTML = this.params[BoxFold.ATTRS.TEXT_CONTENT] ?? "";
+    content.style.opacity = Math.floor(unfoldProgress).toString();
+    content.style.transition = "opacity 0.3s ease-in-out";
 
     card.appendChild(unfold);
+    card.appendChild(content);
     this._root.appendChild(card);
   }
 }
