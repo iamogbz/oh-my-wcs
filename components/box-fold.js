@@ -2,7 +2,7 @@ class BoxFold extends HTMLElement {
   static NAME = "box-fold";
   static DEPS = {};
 
-  static DEFAULT_COLOR_BG = "red";
+  static DEFAULT_COLOR_BG = "peachpuff";
 
   static IDS = {
     CARD: "folded-card",
@@ -84,7 +84,8 @@ class BoxFold extends HTMLElement {
       Number(this.params[BoxFold.ATTRS.UNFOLD_PROGRESS]) || 0;
     const currentUnfoldProgress = unfoldProgress * unfoldLimit;
     const currentUnfoldCount = Math.floor(currentUnfoldProgress);
-    const nextUnfoldProgress = currentUnfoldProgress - currentUnfoldCount;
+    let nextUnfoldProgress = currentUnfoldProgress - currentUnfoldCount;
+    nextUnfoldProgress = nextUnfoldProgress < 0.5 ? 0 : nextUnfoldProgress;
     const nextUnfoldDir = (firstUnfoldDir + currentUnfoldCount) % 2;
     const lowerFoldCount = Math.floor(currentUnfoldCount / 2);
     const higherFoldCount = currentUnfoldCount - lowerFoldCount;
@@ -104,6 +105,10 @@ class BoxFold extends HTMLElement {
           ? higherFoldCount
           : lowerFoldCount
       );
+    const unfoldWidth = currentWidth * (nextUnfoldDir ? 1 : nextUnfoldProgress);
+    const unfoldHeight =
+      currentHeight * (nextUnfoldDir ? nextUnfoldProgress : 1);
+    const isFullyUnfolded = !!Math.floor(unfoldProgress);
 
     const card =
       this._root.getElementById(BoxFold.IDS.CARD) ??
@@ -112,14 +117,19 @@ class BoxFold extends HTMLElement {
     card.style.backgroundColor =
       this.style.backgroundColor || BoxFold.DEFAULT_COLOR_BG;
     card.style.backgroundImage =
-      (Math.floor(unfoldProgress) && this.style.backgroundImage) ||
-      `linear-gradient(45deg, transparent, rgba(0,0,0,0.2))`;
-    card.style.backgroundPosition = "center";
-    card.style.backgroundRepeat = "no-repeat";
-    card.style.backgroundSize = "cover";
+      (isFullyUnfolded && this.style.backgroundImage) ||
+      `linear-gradient(45deg, transparent, rgba(0,0,0,0.1))`;
+    card.style.backgroundPosition = "top-left";
+    card.style.backgroundRepeat = "repeat";
+    card.style.backgroundSize = `${foldedWidth}px ${foldedHeight}px`;
     card.style.position = "relative";
-    card.style.height = `${currentHeight}px`;
-    card.style.width = `${currentWidth}px`;
+    card.style.height = `${
+      currentHeight + Number(currentHeight !== unfoldHeight) * unfoldHeight
+    }px`;
+    card.style.width = `${
+      currentWidth + Number(currentWidth !== unfoldWidth) * unfoldWidth
+    }px`;
+    card.style.overflow = "hidden";
     card.style.display = "flex";
     card.style.alignItems = "center";
     card.style.justifyContent = "center";
@@ -128,30 +138,30 @@ class BoxFold extends HTMLElement {
       this._root.getElementById(BoxFold.IDS.FOLD) ??
       document.createElement("div");
     unfold.setAttribute("id", BoxFold.IDS.FOLD);
-    unfold.style.backgroundColor = card.style.backgroundColor;
     const unfoldAngle = nextUnfoldDir ? 180 : 90;
     const unfoldShade = 1 - nextUnfoldProgress;
-    const unfoldShadeA = `rgba(0,0,0,${unfoldShade / 2})`;
-    const unfoldShadeB = `rgba(0,0,0,${unfoldShade})`;
+    const unfoldShadeA = `rgba(0,0,0,${unfoldShade / 8})`;
+    const unfoldShadeB = `rgba(0,0,0,${unfoldShade / 4})`;
     unfold.style.backgroundImage = `linear-gradient(${unfoldAngle}deg, ${unfoldShadeA}, ${unfoldShadeB})`;
     unfold.style.position = "absolute";
-    unfold.style.height = `${
-      currentHeight * (nextUnfoldDir ? nextUnfoldProgress : 1)
-    }px`;
-    unfold.style.width = `${
-      currentWidth * (nextUnfoldDir ? 1 : nextUnfoldProgress)
-    }px`;
-    unfold.style.top = nextUnfoldDir ? "100%" : "0";
-    unfold.style.left = nextUnfoldDir ? "0" : "100%";
+    unfold.style.height = `${unfoldHeight}px`;
+    unfold.style.width = `${unfoldWidth}px`;
+    unfold.style.top = nextUnfoldDir ? `${currentHeight}px` : "0";
+    unfold.style.left = nextUnfoldDir ? "0" : `${currentWidth}px`;
 
     const content =
       this._root.getElementById(BoxFold.IDS.CONTENT) ??
       document.createElement("pre");
     content.setAttribute("id", BoxFold.IDS.CONTENT);
     content.innerText = this.params[BoxFold.ATTRS.TEXT_CONTENT] ?? "";
-    content.style.opacity = Math.floor(unfoldProgress).toString();
+    const contentVisibilityProgressThreshold = 0.95;
+    content.style.opacity = Math.max(
+      (unfoldProgress - contentVisibilityProgressThreshold) /
+        (1 - contentVisibilityProgressThreshold),
+      0
+    ).toString();
     content.style.transition = "opacity 0.3s ease-in-out";
-    content.style.color = this.style.color
+    content.style.color = this.style.color;
     content.style.textAlign = this.style.textAlign;
 
     card.appendChild(unfold);
