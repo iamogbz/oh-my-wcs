@@ -116,12 +116,18 @@ class BoxFold extends HTMLElement {
     card.setAttribute("id", BoxFold.IDS.CARD);
     card.style.backgroundColor =
       this.style.backgroundColor || BoxFold.DEFAULT_COLOR_BG;
+    const inheritedBackgroundImage =
+      isFullyUnfolded && this.style.backgroundImage;
     card.style.backgroundImage =
-      (isFullyUnfolded && this.style.backgroundImage) ||
+      inheritedBackgroundImage ||
       `linear-gradient(45deg, transparent, rgba(0,0,0,0.1))`;
     card.style.backgroundPosition = "top-left";
-    card.style.backgroundRepeat = "repeat";
-    card.style.backgroundSize = `${foldedWidth}px ${foldedHeight}px`;
+    card.style.backgroundRepeat = inheritedBackgroundImage
+      ? "no-repeat"
+      : "repeat";
+    card.style.backgroundSize =
+      (inheritedBackgroundImage && "cover") ||
+      `${foldedWidth}px ${foldedHeight}px`;
     card.style.position = "relative";
     card.style.height = `${
       currentHeight + Number(currentHeight !== unfoldHeight) * unfoldHeight
