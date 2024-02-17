@@ -1,144 +1,6 @@
 /**
  * https://developer.mozilla.org/en-US/docs/Web/API/Web_components
  */
-// TODO: see https://github.com/iamogbz/react-mirror
-
-/** The init options used for observing elements for updates */
-const INIT_OPTIONS = Object.freeze({
-  attributes: true,
-  childList: true,
-  subtree: false,
-  characterData: true,
-});
-/** @type {Readonly<Set<keyof GlobalEventHandlersEventMap>>} */
-// @ts-expect-error string not automatically narrowed appropriately
-const EVENT_TYPES = Object.freeze(
-  new Set([
-    "click",
-    "input",
-    "keypress",
-    "keydown",
-    "keyup",
-    "mousemove",
-    "mousedown",
-    "mouseup",
-    "scroll",
-  ])
-);
-
-/**
- * Generate random string using length
- * @param {number} length
- */
-function randomString(length) {
-  let str = "";
-  while (str.length < length) {
-    str += Math.random()
-      .toString(36)
-      .substr(2, length - str.length);
-  }
-  return str;
-}
-
-/**
- * Update, adding and removing attributes from element
- * TODO: type hinting matching the attributes accepted to element type
- * @param {Element | undefined} el
- * @param {Record<string, string | null>} attrs
- */
-function updateAttributes(el, attrs) {
-  if (!el) {
-    console.warn("Invalid element given for update:", el, attrs);
-    return;
-  }
-  for (const [attrName, attrValue] of Object.entries(attrs)) {
-    if (attrValue) el.setAttribute(attrName, attrValue);
-    else el.removeAttribute(attrName);
-  }
-}
-
-/**
- * Get the dimensions of a given node
- * @param {Node | Element | undefined} node
- */
-function getBounds(node) {
-  if (isElement(node)) {
-    // @ts-expect-error node at this point is an element
-    return node.getBoundingClientRect();
-  }
-  if (isText(node)) {
-    const range = document.createRange();
-    // @ts-expect-error confirmed text node at this point
-    range.selectNodeContents(node);
-    return range.getBoundingClientRect();
-  }
-  return new DOMRect();
-}
-
-/**
- * Check if node is html element
- * @param {Node | undefined} node
- */
-function isElement(node) {
-  return node ? !isText(node) : false;
-}
-
-/**
- * Check if node is plain text
- * @param {Node | undefined} node
- */
-function isText(node) {
-  return node?.nodeType === Node.TEXT_NODE;
-}
-
-/**
- * Custom implementation of `{@link Object.fromEntries}`
- * @template T eventual record values
- * @param {[string, T][]} entries
- * @returns {Record<string, T>}
- */
-function fromEntries(entries) {
-  return entries.reduce(
-    (cummulator, [k, v]) => ({ ...cummulator, [k]: v }),
-    {}
-  );
-}
-
-/**
- * Observe changes to text node or html element
- * @param {Node & Element} target
- * @param {ResizeObserverCallback & MutationCallback & Parameters<GlobalEventHandlers["addEventListener"]>[1]} callback
- * @param {Readonly<Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[1]>} initOptions
- * @param {Readonly<Set<keyof GlobalEventHandlersEventMap>>?} eventTypes
- */
-function observe(target, callback, initOptions = {}, eventTypes = null) {
-  const ObserverClass = isElement(target) ? ResizeObserver : MutationObserver;
-  const observer = new ObserverClass(callback);
-  observer.observe(target, initOptions);
-
-  // attach event listeners too
-  const listener = (function addEventHandlers() {
-    eventTypes?.forEach((eventType) => {
-      target?.addEventListener(eventType, callback, false);
-    });
-
-    return {
-      destroy: () => {
-        eventTypes?.forEach((eventType) => {
-          target?.removeEventListener(eventType, callback, false);
-        });
-      },
-    };
-  })();
-
-  return {
-    /** Wrap the observer disconnect and remove event listeners */
-    disconnect: () => {
-      listener.destroy();
-      observer.disconnect();
-    },
-  };
-}
 
 class MirrorElement extends HTMLElement {
   static NAME = "mirror-element";
@@ -330,7 +192,7 @@ class FrameStyles extends HTMLElement {
   constructor() {
     super();
     this._root = this.attachShadow({ mode: "open" });
-    this.createStyles()
+    this.createStyles();
   }
 
   createStyles() {
@@ -364,6 +226,90 @@ class ReflectionElement extends HTMLElement {
   static observedAttributes = Object.freeze(
     Object.values(ReflectionElement.attrs)
   );
+
+  constructor() {
+    super();
+    this._root = this.attachShadow({ mode: "open" });
+  }
+
+  connectedCallback() {
+    this.connectReflection();
+  }
+
+  attributeChangedCallback() {
+    this.connectReflection();
+  }
+
+  adoptedCallback() {
+    this.connectReflection();
+  }
+
+  disconnectedCallback() {
+    this.targetObserver?.disconnect();
+  }
+
+  connectReflection() {
+    const targetId = this.getAttribute(ReflectionElement.attrs.TARGET_ID);
+    if (!targetId) {
+      console.error(`No target element id attribute found`);
+      return;
+    }
+    const targetEl = document.getElementById(targetId);
+    if (!targetEl) {
+      console.warn(`Target element not found in document. ${targetId}`);
+      return;
+    }
+    if (this.targetEl?.isEqualNode(targetEl)) {
+      console.info(
+        `Target already previously connected to reflection. ${targetId}`
+      );
+      return;
+    }
+    this.targetEl = targetEl;
+    // attach observer to target element to update existing frame
+    const updateReflection = () => {
+      if (!this.targetEl || isText(this.targetEl)) {
+        this._root.innerHTML = this.targetEl?.innerHTML ?? "";
+        return;
+      }
+      const reflectedNode = document.createElement(this.targetEl.tagName);
+      const {
+        class: targetClasses,
+        style: targetStyles,
+        ...attributes
+      } = getAttributes(this.targetEl);
+      const descendantClasses = this.getAttribute(
+        ReflectionElement.attrs.DESCENDANT_CLASSES
+      );
+      const descendantStyles = this.getAttribute(
+        ReflectionElement.attrs.DESCENDANT_STYLES
+      );
+      const pseudoClassList = getUserActionCustomPseudoClassList(this.targetEl);
+      updateAttributes(reflectedNode, {
+        readonly: true,
+        class: [descendantClasses, targetClasses, ...pseudoClassList]
+          .filter(Boolean)
+          .join(" "),
+        style: [descendantStyles, targetStyles].filter(Boolean).join(";"),
+        ...attributes,
+      });
+      // match reflection scroll position
+      reflectedNode.scrollTop = this.targetEl.scrollTop;
+      reflectedNode.scrollLeft = this.targetEl.scrollLeft;
+
+      // replace previous reflection
+      // TODO: do this diff efficiently
+      this._root.innerHTML = "";
+      this._root.appendChild(reflectedNode);
+    };
+    // provide reference for later disconnecting on callback
+    this.targetObserver = observe(
+      this.targetEl,
+      updateReflection,
+      INIT_OPTIONS,
+      EVENT_TYPES
+    );
+  }
 }
 
 // Define the custom element
@@ -371,3 +317,214 @@ customElements.define(MirrorElement.NAME, MirrorElement);
 customElements.define(FrameElement.NAME, FrameElement);
 customElements.define(FrameStyles.NAME, FrameStyles);
 customElements.define(ReflectionElement.NAME, ReflectionElement);
+
+// Helpers
+
+/** The init options used for observing elements for updates */
+const INIT_OPTIONS = Object.freeze({
+  attributes: true,
+  childList: true,
+  subtree: false,
+  characterData: true,
+});
+/** @type {Readonly<Set<keyof GlobalEventHandlersEventMap>>} */
+// @ts-expect-error string not automatically narrowed appropriately
+const EVENT_TYPES = Object.freeze(
+  new Set([
+    "click",
+    "input",
+    "keypress",
+    "keydown",
+    "keyup",
+    "mousemove",
+    "mousedown",
+    "mouseup",
+    "scroll",
+  ])
+);
+
+/**
+ * Generate random string using length
+ * @param {number} length
+ */
+function randomString(length) {
+  let str = "";
+  while (str.length < length) {
+    str += Math.random()
+      .toString(36)
+      .substr(2, length - str.length);
+  }
+  return str;
+}
+
+/**
+ * Update, adding and removing attributes from element
+ * TODO: type hinting matching the attributes accepted to element type
+ * @param {Element | undefined} el
+ * @param {Record<string, string | boolean | null>} attrs
+ */
+function updateAttributes(el, attrs) {
+  if (!el) {
+    console.warn("Invalid element given for update:", el, attrs);
+    return;
+  }
+  for (const [attrName, attrValue] of Object.entries(attrs)) {
+    if (!attrValue) el.removeAttribute(attrName);
+    else el.setAttribute(attrName, attrValue.toString());
+  }
+}
+
+/**
+ * Get the dimensions of a given node
+ * @param {Node | Element | undefined} node
+ */
+function getBounds(node) {
+  if (isElement(node)) {
+    // @ts-expect-error node at this point is an element
+    return node.getBoundingClientRect();
+  }
+  if (isText(node)) {
+    const range = document.createRange();
+    // @ts-expect-error confirmed text node at this point
+    range.selectNodeContents(node);
+    return range.getBoundingClientRect();
+  }
+  return new DOMRect();
+}
+
+/**
+ *
+ * @param {Element | undefined} element
+ * @returns
+ */
+function getAttributes(element) {
+  /** @type {Record<string, string>} */
+  const attributes = {};
+  if (isElement(element)) {
+    Array.from(element?.attributes ?? []).forEach((attr) => {
+      attributes[attr.name] = attr.value;
+    });
+  }
+  const fieldValue = getValue(element);
+  if (fieldValue) attributes.value = fieldValue;
+  return attributes;
+}
+
+/**
+ * Get node value
+ * @param {Element | undefined} node
+ */
+function getValue(node) {
+  // @ts-expect-error will just return nothing if not {@type HTMLInputElement}
+  return node?.value;
+}
+
+/**
+ * Check if node is html element
+ * @param {Node | undefined} node
+ */
+function isElement(node) {
+  return node ? !isText(node) : false;
+}
+
+/**
+ * Check if node is plain text
+ * @param {Node | undefined} node
+ */
+function isText(node) {
+  return node?.nodeType === Node.TEXT_NODE;
+}
+
+/**
+ * Custom implementation of `{@link Object.fromEntries}`
+ * @template T eventual record values
+ * @param {[string, T][]} entries
+ * @returns {Record<string, T>}
+ */
+function fromEntries(entries) {
+  return entries.reduce(
+    (cummulator, [k, v]) => ({ ...cummulator, [k]: v }),
+    {}
+  );
+}
+
+/**
+ * Observe changes to text node or html element
+ * @param {Node & Element} target
+ * @param {ResizeObserverCallback & MutationCallback & Parameters<GlobalEventHandlers["addEventListener"]>[1]} callback
+ * @param {Readonly<Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[1]>} initOptions
+ * @param {Readonly<Set<keyof GlobalEventHandlersEventMap>>?} eventTypes
+ */
+function observe(target, callback, initOptions = {}, eventTypes = null) {
+  const ObserverClass = isElement(target) ? ResizeObserver : MutationObserver;
+  const observer = new ObserverClass(callback);
+  observer.observe(target, initOptions);
+
+  // attach event listeners too
+  const listener = (function addEventHandlers() {
+    eventTypes?.forEach((eventType) => {
+      target?.addEventListener(eventType, callback, false);
+    });
+
+    return {
+      destroy: () => {
+        eventTypes?.forEach((eventType) => {
+          target?.removeEventListener(eventType, callback, false);
+        });
+      },
+    };
+  })();
+
+  return {
+    /** Wrap the observer disconnect and remove event listeners */
+    disconnect: () => {
+      listener.destroy();
+      observer.disconnect();
+    },
+  };
+}
+
+const USER_ACTION_PSEUDO_CLASS_LIST = Object.freeze([
+  "active",
+  "hover",
+  "focus",
+  // FIX: https://github.com/jsdom/jsdom/issues/3426
+  // "focus-visible",
+  // FIX: https://github.com/jsdom/jsdom/issues/3055
+  // "focus-within",
+]);
+/**
+ * Get as pseudo class name
+ * @param {(typeof USER_ACTION_PSEUDO_CLASS_LIST)[number]} cls
+ */
+function userActionAsPseudoClassSelector(cls) {
+  return `:${cls}`;
+}
+
+const CUSTOM_CLASS_PREFIX = "_refl_";
+/**
+ * @param {any} cls
+ */
+function asCustomPseudoClass(cls) {
+  return `${CUSTOM_CLASS_PREFIX}${cls}`;
+}
+
+/**
+ * Get the user action defined pseudo classes for given node
+ * @param {Node | undefined} el
+ */
+function getUserActionPseudoClassList(el) {
+  if (!isElement(el)) return [];
+  return USER_ACTION_PSEUDO_CLASS_LIST.filter((cls) =>
+    // @ts-expect-error at this point el is definitely {@type Element}
+    el?.matches(`*${userActionAsPseudoClassSelector(cls)}`)
+  );
+}
+
+/**
+ * Get the user action defined pseudo classes customised for reflection
+ * @param {Element | Text | undefined} el
+ */
+function getUserActionCustomPseudoClassList(el) {
+  return getUserActionPseudoClassList(el).map(asCustomPseudoClass);
+}
