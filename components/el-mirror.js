@@ -16,6 +16,7 @@ class MirrorElement extends HTMLElement {
 
   constructor() {
     super();
+    // serves as mirror frame
     this._root = this.attachShadow({ mode: "open" });
     this._instanceId = randomString(7);
     this.createMirror();
@@ -40,14 +41,11 @@ class MirrorElement extends HTMLElement {
    * Create the elements used to mirror an isolated framed target.
    */
   createMirror() {
-    this.frameEl = document.createElement("frame-element");
-    this.frameEl.id = this._instanceId;
     this.frameStylesEl = document.createElement("frame-styles");
     this.reflectionEl = document.createElement("reflection-element");
 
-    this.frameEl.appendChild(this.frameStylesEl);
-    this.frameEl.appendChild(this.reflectionEl);
-    this._root.appendChild(this.frameEl);
+    this._root.appendChild(this.frameStylesEl);
+    this._root.appendChild(this.reflectionEl);
   }
 
   connectedCallback() {
@@ -60,91 +58,33 @@ class MirrorElement extends HTMLElement {
 
   adoptedCallback() {
     this.connectMirror();
-  }
-
-  connectMirror() {
-    const targetElementId = this.params[MirrorElement.attrs.TARGET_ID];
-    const frameAttrs = this.params[MirrorElement.attrs.FRAME_ATTRS];
-    updateAttributes(this.frameEl, {
-      [FrameElement.attrs.TARGET_ID]: targetElementId,
-      [FrameElement.attrs.FRAME_ATTRS]: frameAttrs,
-    });
-    updateAttributes(this.reflectionEl, {
-      [ReflectionElement.attrs.TARGET_ID]: targetElementId,
-      [ReflectionElement.attrs.DESCENDANT_STYLES]: "pointer-events: none",
-    });
-  }
-}
-
-class FrameElement extends HTMLElement {
-  static NAME = "frame-element";
-  static attrs = Object.freeze({
-    /** attributes passed into frame in form of "attr=value;attr=value" */
-    FRAME_ATTRS: "frame-attrs",
-    /** ID of the target element to be mirror framed */
-    TARGET_ID: "target-id",
-  });
-  /** @type {Readonly<(typeof FrameElement.attrs)[keyof (typeof FrameElement.attrs)][]>} */
-  static observedAttributes = Object.freeze(Object.values(FrameElement.attrs));
-
-  constructor() {
-    super();
-    this._root = this.attachShadow({ mode: "open" });
-    this.createFrame();
-  }
-
-  connectedCallback() {
-    this.connectFrame();
-    this.connectTarget();
-  }
-
-  attributeChangedCallback() {
-    this.connectFrame();
-    this.connectTarget();
-  }
-
-  adoptedCallback() {
-    this.connectFrame();
-    this.connectTarget();
   }
 
   disconnectedCallback() {
     this.targetObserver?.disconnect();
   }
 
-  /**
-   * Create the instance frame used to isolate reflection from rest of document.
-   */
-  createFrame() {
-    const iframe = document.createElement("iframe");
-    this._root.appendChild(iframe);
-    this.frameEl = iframe;
-  }
-
-  /**
-   * Connect the root frame and pass down props from mirror.
-   */
-  connectFrame() {
-    if (!this.frameEl) {
-      console.error(`No frame element found`);
-      return;
-    }
-    const frameProps = this.getAttribute(FrameElement.attrs.FRAME_ATTRS);
+  connectMirror() {
+    const targetId = this.params[MirrorElement.attrs.TARGET_ID];
+    const frameProps = this.params[MirrorElement.attrs.FRAME_ATTRS];
     if (!frameProps) {
       console.warn(`No frame element attributes found`, frameProps);
       return;
     }
+    // update the mirror frame with expanded frame props
     const frameAttrs = fromEntries([
       ...new URLSearchParams(frameProps).entries(),
     ]);
-    updateAttributes(this.frameEl, frameAttrs);
-  }
-
-  /**
-   * Connect the target element using the current document.
-   */
-  connectTarget() {
-    const targetId = this.getAttribute(FrameElement.attrs.TARGET_ID);
+    updateAttributes(this, {
+      "instance-id": this._instanceId,
+      ...frameAttrs,
+    });
+    // connect the reflection to the target
+    updateAttributes(this.reflectionEl, {
+      [ReflectionElement.attrs.TARGET_ID]: targetId,
+      [ReflectionElement.attrs.DESCENDANT_STYLES]: "pointer-events: none",
+    });
+    // Connect the target element using the current document.
     if (!targetId) {
       console.error(`No target element id attribute found`);
       return;
@@ -164,18 +104,8 @@ class FrameElement extends HTMLElement {
     // attach size observer to target element to update existing frame
     const updateFrameSize = () => {
       const { top, bottom, left, right } = getBounds(this.targetEl);
-      const attributes = {
-        height: `${bottom - top}px`,
-        width: `${right - left}px`,
-      };
-      if (!this.frameEl) {
-        console.warn(
-          `Frame element not found for dimension update:`,
-          attributes
-        );
-        return;
-      }
-      updateAttributes(this.frameEl, attributes);
+      this.style.width = `${right - left}px`;
+      this.style.height = `${bottom - top}px`;
     };
     // provide reference for later disconnecting on callback
     this.targetObserver = observe(this.targetEl, updateFrameSize, {
@@ -184,35 +114,68 @@ class FrameElement extends HTMLElement {
   }
 }
 
+/** This does not use a shadow dom so must be wrapped by MirrorElement */
 class FrameStyles extends HTMLElement {
   static NAME = "frame-styles";
   static attrs = Object.freeze({});
-  static observerdAttributes = Object.freeze(Object.values(FrameStyles.attrs));
+  static observedAttributes = Object.freeze(Object.values(FrameStyles.attrs));
 
-  constructor() {
-    super();
-    this._root = this.attachShadow({ mode: "open" });
+  connectedCallback() {
     this.createStyles();
+    this.connectStyles();
+  }
+
+  adoptedCallback() {
+    this.connectStyles();
+  }
+
+  disconnectedCallback() {
+    this.styleObserver?.disconnect();
   }
 
   createStyles() {
     // create element to import normaliseed frame styles
-    const normaliseStyleEl = document.createElement("link");
-    updateAttributes(normaliseStyleEl, {
+    this.normaliseStyleEl = document.createElement("link");
+    updateAttributes(this.normaliseStyleEl, {
       rel: "stylesheet",
       href: "https://necolas.github.io/normalize.css/8.0.1/normalize.css",
     });
 
     // create style element to reset frame document
-    const resetFrameStyleEl = document.createElement("style");
-    resetFrameStyleEl.id = "reset-frame";
-    resetFrameStyleEl.textContent = `html { overflow: hidden }`;
+    this.resetFrameStyleEl = document.createElement("style");
+    this.resetFrameStyleEl.id = "reset-frame";
+    this.resetFrameStyleEl.textContent = `html { overflow: hidden }`;
 
-    this._root.appendChild(normaliseStyleEl);
-    this._root.appendChild(resetFrameStyleEl);
+    // create style element to host document styles
+    this.documentFrameStyleEl = document.createElement("style");
+    this.documentFrameStyleEl.id = "parent-document-mirror-stylesheets";
+
+    this.appendChild(this.normaliseStyleEl);
+    this.appendChild(this.resetFrameStyleEl);
+    this.appendChild(this.documentFrameStyleEl);
+  }
+
+  connectStyles() {
+    const updateStyles = () => {
+      if (!this.documentFrameStyleEl) {
+        console.warn("Parent document mirror stylesheet not found.");
+        return;
+      }
+      const newRules = getAllStyleRules().join(";");
+      this.documentFrameStyleEl.textContent = newRules;
+    };
+    // provide reference for later disconnecting on callback
+    this.styleObserver = observe(window.document, updateStyles, {
+      attributeFilter: ["class"],
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    });
   }
 }
 
+/** This does not use a shadow dom so must be wrapped by MirrorElement */
 class ReflectionElement extends HTMLElement {
   static NAME = "reflection-element";
   static attrs = Object.freeze({
@@ -226,11 +189,6 @@ class ReflectionElement extends HTMLElement {
   static observedAttributes = Object.freeze(
     Object.values(ReflectionElement.attrs)
   );
-
-  constructor() {
-    super();
-    this._root = this.attachShadow({ mode: "open" });
-  }
 
   connectedCallback() {
     this.connectReflection();
@@ -266,41 +224,44 @@ class ReflectionElement extends HTMLElement {
       return;
     }
     this.targetEl = targetEl;
+
+    const descendantClasses = this.getAttribute(
+      ReflectionElement.attrs.DESCENDANT_CLASSES
+    );
+    const descendantStyles = this.getAttribute(
+      ReflectionElement.attrs.DESCENDANT_STYLES
+    );
     // attach observer to target element to update existing frame
     const updateReflection = () => {
       if (!this.targetEl || isText(this.targetEl)) {
-        this._root.innerHTML = this.targetEl?.innerHTML ?? "";
+        this.innerHTML = this.targetEl?.innerHTML ?? "";
         return;
       }
-      const reflectedNode = document.createElement(this.targetEl.tagName);
-      const {
-        class: targetClasses,
-        style: targetStyles,
-        ...attributes
-      } = getAttributes(this.targetEl);
-      const descendantClasses = this.getAttribute(
-        ReflectionElement.attrs.DESCENDANT_CLASSES
-      );
-      const descendantStyles = this.getAttribute(
-        ReflectionElement.attrs.DESCENDANT_STYLES
-      );
-      const pseudoClassList = getUserActionCustomPseudoClassList(this.targetEl);
-      updateAttributes(reflectedNode, {
-        readonly: true,
-        class: [descendantClasses, targetClasses, ...pseudoClassList]
-          .filter(Boolean)
-          .join(" "),
-        style: [descendantStyles, targetStyles].filter(Boolean).join(";"),
-        ...attributes,
+      const reflectedNode = cloneNode(this.targetEl, (original, clone) => {
+        const {
+          class: originalClasses,
+          style: originalStyles,
+          ...attributes
+        } = getAttributes(original);
+        const pseudoClassList = getUserActionCustomPseudoClassList(original);
+
+        updateAttributes(clone, {
+          readonly: true,
+          class: [descendantClasses, originalClasses, ...pseudoClassList]
+            .filter(Boolean)
+            .join(" "),
+          style: [descendantStyles, originalStyles].filter(Boolean).join(";"),
+          ...attributes,
+        });
+        // match reflection scroll position
+        clone.scrollTop = original.scrollTop;
+        clone.scrollLeft = original.scrollLeft;
       });
-      // match reflection scroll position
-      reflectedNode.scrollTop = this.targetEl.scrollTop;
-      reflectedNode.scrollLeft = this.targetEl.scrollLeft;
 
       // replace previous reflection
       // TODO: do this diff efficiently
-      this._root.innerHTML = "";
-      this._root.appendChild(reflectedNode);
+      this.innerHTML = "";
+      reflectedNode && this.appendChild(reflectedNode);
     };
     // provide reference for later disconnecting on callback
     this.targetObserver = observe(
@@ -314,12 +275,10 @@ class ReflectionElement extends HTMLElement {
 
 // Define the custom element
 customElements.define(MirrorElement.NAME, MirrorElement);
-customElements.define(FrameElement.NAME, FrameElement);
 customElements.define(FrameStyles.NAME, FrameStyles);
 customElements.define(ReflectionElement.NAME, ReflectionElement);
 
-// Helpers
-
+// --- Helpers --- //
 /** The init options used for observing elements for updates */
 const INIT_OPTIONS = Object.freeze({
   attributes: true,
@@ -424,7 +383,7 @@ function getValue(node) {
  * @param {Node | undefined} node
  */
 function isElement(node) {
-  return node ? !isText(node) : false;
+  return node ? !isText(node) && node.nodeType !== Node.DOCUMENT_NODE : false;
 }
 
 /**
@@ -450,7 +409,7 @@ function fromEntries(entries) {
 
 /**
  * Observe changes to text node or html element
- * @param {Node & Element} target
+ * @param {Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[0]} target
  * @param {ResizeObserverCallback & MutationCallback & Parameters<GlobalEventHandlers["addEventListener"]>[1]} callback
  * @param {Readonly<Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[1]>} initOptions
  * @param {Readonly<Set<keyof GlobalEventHandlersEventMap>>?} eventTypes
@@ -458,6 +417,7 @@ function fromEntries(entries) {
 function observe(target, callback, initOptions = {}, eventTypes = null) {
   const ObserverClass = isElement(target) ? ResizeObserver : MutationObserver;
   const observer = new ObserverClass(callback);
+  // @ts-expect-error target union vs combination types
   observer.observe(target, initOptions);
 
   // attach event listeners too
@@ -493,6 +453,21 @@ const USER_ACTION_PSEUDO_CLASS_LIST = Object.freeze([
   // FIX: https://github.com/jsdom/jsdom/issues/3055
   // "focus-within",
 ]);
+
+/**
+ * @param {string} cssSelector
+ */
+function withCustomerUserActionPseudoClassSelector(cssSelector) {
+  const userActionPseudoClassesRegex = new RegExp(
+    USER_ACTION_PSEUDO_CLASS_LIST.map(userActionAsPseudoClassSelector).join("|")
+  );
+
+  return cssSelector.replace(
+    userActionPseudoClassesRegex,
+    (cls) => `.${asCustomPseudoClass(cls.substring(1))}`
+  );
+}
+
 /**
  * Get as pseudo class name
  * @param {(typeof USER_ACTION_PSEUDO_CLASS_LIST)[number]} cls
@@ -527,4 +502,44 @@ function getUserActionPseudoClassList(el) {
  */
 function getUserActionCustomPseudoClassList(el) {
   return getUserActionPseudoClassList(el).map(asCustomPseudoClass);
+}
+
+/**
+ * Get all style rules from window document sorted by selector text
+ */
+function getAllStyleRules() {
+  return [""]
+    .concat(
+      ...Array.from(document.styleSheets).map((sheet) => {
+        try {
+          return Array.from(sheet.cssRules).map((rule) => {
+            return withCustomerUserActionPseudoClassSelector(rule.cssText);
+          });
+        } catch (err) {
+          console.warn("No css rules in sheet", sheet);
+          return "";
+        }
+      })
+    )
+    .filter(Boolean)
+    .sort();
+}
+
+/**
+ * Deep clones a node and applies a callback to each cloned element including descendants.
+ * @param {Node | undefined} node
+ * @param {(original: Element, clone: Element) => void} onElement
+ */
+function cloneNode(node, onElement) {
+  if (!node) return;
+  if (isText(node)) return node.cloneNode(true);
+  // @ts-expect-error node is an element at this point
+  /** @type {Element} */ const element = node;
+  const clonedElement = document.createElement(element.tagName);
+  element.childNodes.forEach((childNode) => {
+    const clonedChildNode = cloneNode(childNode, onElement);
+    clonedChildNode && clonedElement.appendChild(clonedChildNode);
+  });
+  onElement(element, clonedElement);
+  return clonedElement;
 }
