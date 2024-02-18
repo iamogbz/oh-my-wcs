@@ -292,11 +292,12 @@ const EVENT_TYPES = Object.freeze(
   new Set([
     "click",
     "input",
-    "keypress",
     "keydown",
+    "keypress",
     "keyup",
-    "mousemove",
     "mousedown",
+    "mouseleave",
+    "mousemove",
     "mouseup",
     "scroll",
   ])
