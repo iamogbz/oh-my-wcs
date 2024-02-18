@@ -61,7 +61,7 @@ class MirrorElement extends HTMLElement {
   }
 
   disconnectedCallback() {
-    this.targetObserver?.disconnect();
+    this.targetSizeObserver?.disconnect();
   }
 
   connectMirror() {
@@ -108,8 +108,13 @@ class MirrorElement extends HTMLElement {
       this.style.height = `${bottom - top}px`;
     };
     // provide reference for later disconnecting on callback
-    this.targetObserver = observe(this.targetEl, updateFrameSize, {
-      characterData: true,
+    this.targetSizeObserver = observe({
+      target: this.targetEl,
+      callback: updateFrameSize,
+      initOptions: {
+        characterData: true,
+      },
+      dimensions: true,
     });
   }
 }
@@ -161,16 +166,20 @@ class FrameStyles extends HTMLElement {
         console.warn("Parent document mirror stylesheet not found.");
         return;
       }
-      const newRules = getAllStyleRules().join(";");
+      const newRules = getAllStyleRules().join("\n");
       this.documentFrameStyleEl.textContent = newRules;
     };
     // provide reference for later disconnecting on callback
-    this.styleObserver = observe(window.document, updateStyles, {
-      attributeFilter: ["class"],
-      attributes: true,
-      characterData: true,
-      childList: true,
-      subtree: true,
+    this.styleObserver = observe({
+      target: window.document,
+      callback: updateStyles,
+      initOptions: {
+        attributeFilter: ["class"],
+        attributes: true,
+        characterData: true,
+        childList: true,
+        subtree: true,
+      },
     });
   }
 }
@@ -203,7 +212,7 @@ class ReflectionElement extends HTMLElement {
   }
 
   disconnectedCallback() {
-    this.targetObserver?.disconnect();
+    this.reflectionObserver?.disconnect();
   }
 
   connectReflection() {
@@ -263,12 +272,17 @@ class ReflectionElement extends HTMLElement {
       reflectedNode && this.appendChild(reflectedNode);
     };
     // provide reference for later disconnecting on callback
-    this.targetObserver = observe(
-      this.targetEl,
-      updateReflection,
-      INIT_OPTIONS,
-      EVENT_TYPES
-    );
+    this.reflectionObserver = observe({
+      target: this.targetEl,
+      callback: updateReflection,
+      initOptions: {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        characterData: true,
+      },
+      eventTypes: EVENT_TYPES,
+    });
   }
 }
 
@@ -278,13 +292,6 @@ customElements.define(FrameStyles.NAME, FrameStyles);
 customElements.define(ReflectionElement.NAME, ReflectionElement);
 
 // --- Helpers --- //
-/** The init options used for observing elements for updates */
-const INIT_OPTIONS = Object.freeze({
-  attributes: true,
-  childList: true,
-  subtree: false,
-  characterData: true,
-});
 /** @type {Readonly<Set<keyof GlobalEventHandlersEventMap>>} */
 // @ts-expect-error string not automatically narrowed appropriately
 const EVENT_TYPES = Object.freeze(
@@ -409,13 +416,23 @@ function fromEntries(entries) {
 
 /**
  * Observe changes to text node or html element
- * @param {Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[0]} target
- * @param {ResizeObserverCallback & MutationCallback & Parameters<GlobalEventHandlers["addEventListener"]>[1]} callback
- * @param {Readonly<Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[1]>} initOptions
- * @param {Readonly<Set<keyof GlobalEventHandlersEventMap>>?} eventTypes
+ * @param {{
+ *  target: Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[0];
+ *  callback: ResizeObserverCallback & MutationCallback & Parameters<GlobalEventHandlers["addEventListener"]>[1];
+ *  initOptions: Readonly<Parameters<InstanceType<typeof ResizeObserver | typeof MutationObserver>["observe"]>[1]>;
+ *  eventTypes?: Readonly<Set<keyof GlobalEventHandlersEventMap>>?;
+ *  dimensions?: boolean;
+ * }} params
  */
-function observe(target, callback, initOptions = {}, eventTypes = null) {
-  const ObserverClass = isElement(target) ? ResizeObserver : MutationObserver;
+function observe({
+  target,
+  callback,
+  initOptions = {},
+  eventTypes,
+  dimensions = false,
+}) {
+  const ObserverClass =
+    dimensions && !isText(target) ? ResizeObserver : MutationObserver;
   const observer = new ObserverClass(callback);
   // @ts-expect-error target union vs combination types
   observer.observe(target, initOptions);
@@ -516,7 +533,8 @@ function getAllStyleRules() {
             return withCustomerUserActionPseudoClassSelector(rule.cssText);
           });
         } catch (err) {
-          console.warn("No css rules in sheet", sheet);
+          // TODO: probably a <link /> tag
+          // console.warn("No css rules in sheet", sheet);
           return "";
         }
       })
