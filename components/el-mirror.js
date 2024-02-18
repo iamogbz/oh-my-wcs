@@ -224,19 +224,18 @@ class ReflectionElement extends HTMLElement {
       return;
     }
     this.targetEl = targetEl;
-
-    const descendantClasses = this.getAttribute(
-      ReflectionElement.attrs.DESCENDANT_CLASSES
-    );
-    const descendantStyles = this.getAttribute(
-      ReflectionElement.attrs.DESCENDANT_STYLES
-    );
     // attach observer to target element to update existing frame
     const updateReflection = () => {
       if (!this.targetEl || isText(this.targetEl)) {
         this.innerHTML = this.targetEl?.innerHTML ?? "";
         return;
       }
+      const descendantClasses = this.getAttribute(
+        ReflectionElement.attrs.DESCENDANT_CLASSES
+      );
+      const descendantStyles = this.getAttribute(
+        ReflectionElement.attrs.DESCENDANT_STYLES
+      );
       const reflectedNode = cloneNode(this.targetEl, (original, clone) => {
         const {
           class: originalClasses,
