@@ -5,6 +5,10 @@
 class MirrorElement extends HTMLElement {
   static NAME = "mirror-element";
   static attrs = Object.freeze({
+    /** class attribute to be passed to all descendant elements refelected */
+    REFLECTION_CLASSES: "reflection-cls",
+    /** style attribute to be passed to all descendant elements reflected */
+    REFLECTION_STYLES: "reflection-styles",
     /** attributes passed into frame in form of "attr=value;attr=value" */
     FRAME_ATTRS: "frame-attrs",
     /** ID of the target element to be mirrored */
@@ -20,6 +24,10 @@ class MirrorElement extends HTMLElement {
     this._root = this.attachShadow({ mode: "open" });
     this._instanceId = randomString(7);
     this.createMirror();
+  }
+
+  get reflectionId() {
+    return `${CUSTOM_CLASS_PREFIX}${this._instanceId}`;
   }
 
   /**
@@ -41,101 +49,7 @@ class MirrorElement extends HTMLElement {
    * Create the elements used to mirror an isolated framed target.
    */
   createMirror() {
-    this.frameStylesEl = document.createElement("frame-styles");
-    this.reflectionEl = document.createElement("reflection-element");
-
-    this._root.appendChild(this.frameStylesEl);
-    this._root.appendChild(this.reflectionEl);
-  }
-
-  connectedCallback() {
-    this.connectMirror();
-  }
-
-  attributeChangedCallback() {
-    this.connectMirror();
-  }
-
-  adoptedCallback() {
-    this.connectMirror();
-  }
-
-  disconnectedCallback() {
-    this.targetSizeObserver?.disconnect();
-  }
-
-  connectMirror() {
-    const targetId = this.params[MirrorElement.attrs.TARGET_ID];
-    const frameProps = this.params[MirrorElement.attrs.FRAME_ATTRS];
-    if (!frameProps) {
-      console.warn(`No frame element attributes found`, frameProps);
-      return;
-    }
-    // update the mirror frame with expanded frame props
-    const frameAttrs = fromEntries([
-      ...new URLSearchParams(frameProps).entries(),
-    ]);
-    updateAttributes(this, {
-      "instance-id": this._instanceId,
-      ...frameAttrs,
-    });
-    // connect the reflection to the target
-    updateAttributes(this.reflectionEl, {
-      [ReflectionElement.attrs.TARGET_ID]: targetId,
-      [ReflectionElement.attrs.DESCENDANT_STYLES]: "pointer-events: none",
-    });
-    // Connect the target element using the current document.
-    if (!targetId) {
-      console.error(`No target element id attribute found`);
-      return;
-    }
-    const targetEl = document.getElementById(targetId);
-    if (!targetEl) {
-      console.warn(`Target element not found in document. ${targetId}`);
-      return;
-    }
-    if (this.targetEl?.isEqualNode(targetEl)) {
-      console.info(
-        `Target already previously connected to mirror frame. ${targetId}`
-      );
-      return;
-    }
-    this.targetEl = targetEl;
-    // attach size observer to target element to update existing frame
-    const updateFrameSize = () => {
-      const { top, bottom, left, right } = getBounds(this.targetEl);
-      this.style.width = `${right - left}px`;
-      this.style.height = `${bottom - top}px`;
-    };
-    // provide reference for later disconnecting on callback
-    this.targetSizeObserver = observe({
-      target: this.targetEl,
-      callback: updateFrameSize,
-      initOptions: {
-        characterData: true,
-      },
-      dimensions: true,
-    });
-  }
-}
-
-/** This does not use a shadow dom so must be wrapped by MirrorElement */
-class FrameStyles extends HTMLElement {
-  static NAME = "frame-styles";
-  static attrs = Object.freeze({});
-  static observedAttributes = Object.freeze(Object.values(FrameStyles.attrs));
-
-  connectedCallback() {
     this.createStyles();
-    this.connectStyles();
-  }
-
-  adoptedCallback() {
-    this.connectStyles();
-  }
-
-  disconnectedCallback() {
-    this.styleObserver?.disconnect();
   }
 
   createStyles() {
@@ -155,9 +69,64 @@ class FrameStyles extends HTMLElement {
     this.documentFrameStyleEl = document.createElement("style");
     this.documentFrameStyleEl.id = "parent-document-mirror-stylesheets";
 
-    this.appendChild(this.normaliseStyleEl);
-    this.appendChild(this.resetFrameStyleEl);
-    this.appendChild(this.documentFrameStyleEl);
+    this._root?.appendChild(this.normaliseStyleEl);
+    this._root?.appendChild(this.resetFrameStyleEl);
+    this._root?.appendChild(this.documentFrameStyleEl);
+  }
+
+  connectedCallback() {
+    this.connectMirror();
+  }
+
+  attributeChangedCallback() {
+    this.connectMirror();
+  }
+
+  adoptedCallback() {
+    this.connectMirror();
+  }
+
+  disconnectedCallback() {
+    this.reflectionObserver?.disconnect();
+    this.styleObserver?.disconnect();
+    this.targetSizeObserver?.disconnect();
+  }
+
+  connectMirror() {
+    const targetId = this.params[MirrorElement.attrs.TARGET_ID];
+    const frameProps = this.params[MirrorElement.attrs.FRAME_ATTRS];
+    if (!frameProps) {
+      console.warn(`No frame element attributes found`, frameProps);
+      return;
+    }
+    // update the mirror frame with expanded frame props
+    const frameAttrs = fromEntries([
+      ...new URLSearchParams(frameProps).entries(),
+    ]);
+    updateAttributes(this, {
+      "instance-id": this._instanceId,
+      ...frameAttrs,
+    });
+    // Connect the target element using the current document.
+    if (!targetId) {
+      console.error(`No target element id attribute found`);
+      return;
+    }
+    const targetEl = document.getElementById(targetId);
+    if (!targetEl) {
+      console.warn(`Target element not found in document. ${targetId}`);
+      return;
+    }
+    if (this.targetEl?.isEqualNode(targetEl)) {
+      console.info(
+        `Target already previously connected to mirror. ${targetId}`
+      );
+      return;
+    }
+    this.targetEl = targetEl;
+    this.connectFrame();
+    this.connectStyles();
+    this.connectReflection();
   }
 
   connectStyles() {
@@ -182,57 +151,28 @@ class FrameStyles extends HTMLElement {
       },
     });
   }
-}
 
-/** This does not use a shadow dom so must be wrapped by MirrorElement */
-class ReflectionElement extends HTMLElement {
-  static NAME = "reflection-element";
-  static attrs = Object.freeze({
-    TARGET_ID: MirrorElement.attrs.TARGET_ID,
-    /** class attribute to be passed to all descendant elements refelected */
-    DESCENDANT_CLASSES: "descendant-cls",
-    /** style attribute to be passed to all descendant elements reflected */
-    DESCENDANT_STYLES: "descendant-styles",
-  });
-  /** @type {Readonly<(typeof ReflectionElement.attrs)[keyof (typeof ReflectionElement.attrs)][]>} */
-  static observedAttributes = Object.freeze(
-    Object.values(ReflectionElement.attrs)
-  );
-
-  connectedCallback() {
-    this.connectReflection();
-  }
-
-  attributeChangedCallback() {
-    this.connectReflection();
-  }
-
-  adoptedCallback() {
-    this.connectReflection();
-  }
-
-  disconnectedCallback() {
-    this.reflectionObserver?.disconnect();
+  connectFrame() {
+    if (!this.targetEl) return;
+    // attach size observer to target element to update existing frame
+    const updateFrameSize = () => {
+      const { top, bottom, left, right } = getBounds(this.targetEl);
+      this.style.width = `${right - left}px`;
+      this.style.height = `${bottom - top}px`;
+    };
+    // provide reference for later disconnecting on callback
+    this.targetSizeObserver = observe({
+      target: this.targetEl,
+      callback: updateFrameSize,
+      initOptions: {
+        characterData: true,
+      },
+      dimensions: true,
+    });
   }
 
   connectReflection() {
-    const targetId = this.getAttribute(ReflectionElement.attrs.TARGET_ID);
-    if (!targetId) {
-      console.error(`No target element id attribute found`);
-      return;
-    }
-    const targetEl = document.getElementById(targetId);
-    if (!targetEl) {
-      console.warn(`Target element not found in document. ${targetId}`);
-      return;
-    }
-    if (this.targetEl?.isEqualNode(targetEl)) {
-      console.info(
-        `Target already previously connected to reflection. ${targetId}`
-      );
-      return;
-    }
-    this.targetEl = targetEl;
+    if (!this.targetEl) return;
     // attach observer to target element to update existing frame
     const updateReflection = () => {
       if (!this.targetEl || isText(this.targetEl)) {
@@ -240,11 +180,12 @@ class ReflectionElement extends HTMLElement {
         return;
       }
       const descendantClasses = this.getAttribute(
-        ReflectionElement.attrs.DESCENDANT_CLASSES
+        MirrorElement.attrs.REFLECTION_CLASSES
       );
       const descendantStyles = this.getAttribute(
-        ReflectionElement.attrs.DESCENDANT_STYLES
+        MirrorElement.attrs.REFLECTION_STYLES
       );
+
       const reflectedNode = cloneNode(this.targetEl, (original, clone) => {
         const {
           class: originalClasses,
@@ -266,10 +207,19 @@ class ReflectionElement extends HTMLElement {
         clone.scrollLeft = original.scrollLeft;
       });
 
+      // @ts-expect-error reflection is always an element
+      updateAttributes(reflectedNode, { "reflection-id": this.reflectionId });
+      const previousReflectionEl = this._root.querySelector(
+        `[reflection-id=${this.reflectionId}]`
+      );
       // replace previous reflection
       // TODO: do this diff efficiently
-      this.innerHTML = "";
-      reflectedNode && this.appendChild(reflectedNode);
+      if (previousReflectionEl) {
+        this._root.removeChild(previousReflectionEl);
+      }
+      if (reflectedNode) {
+        this._root.appendChild(reflectedNode);
+      }
     };
     // provide reference for later disconnecting on callback
     this.reflectionObserver = observe({
@@ -288,8 +238,6 @@ class ReflectionElement extends HTMLElement {
 
 // Define the custom element
 customElements.define(MirrorElement.NAME, MirrorElement);
-customElements.define(FrameStyles.NAME, FrameStyles);
-customElements.define(ReflectionElement.NAME, ReflectionElement);
 
 // --- Helpers --- //
 /** @type {Readonly<Set<keyof GlobalEventHandlersEventMap>>} */
