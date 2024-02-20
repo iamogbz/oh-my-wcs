@@ -97,11 +97,10 @@ class MirrorElement extends HTMLElement {
     const frameProps = this.params[MirrorElement.attrs.FRAME_ATTRS];
     if (!frameProps) {
       console.warn(`No frame element attributes found`, frameProps);
-      return;
     }
     // update the mirror frame with expanded frame props
     const frameAttrs = fromEntries([
-      ...new URLSearchParams(frameProps).entries(),
+      ...new URLSearchParams(frameProps ?? "").entries(),
     ]);
     updateAttributes(this, {
       "instance-id": this._instanceId,
@@ -233,6 +232,8 @@ class MirrorElement extends HTMLElement {
       },
       eventTypes: EVENT_TYPES,
     });
+    // trigger first render of reflection
+    updateReflection();
   }
 }
 
