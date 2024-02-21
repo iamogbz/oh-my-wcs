@@ -75,7 +75,7 @@ class MirrorElement extends HTMLElement {
   }
 
   connectedCallback() {
-    this.ensureConnect();
+    this.connectMirror();
   }
 
   attributeChangedCallback() {
@@ -90,26 +90,6 @@ class MirrorElement extends HTMLElement {
     this.reflectionObserver?.disconnect();
     this.styleObserver?.disconnect();
     this.targetSizeObserver?.disconnect();
-  }
-
-  /**
-   * Attempt to connect to the target element multiple times
-   * @param {{maxConnectionAttempts?: number, reconnectTimeoutMs?: number}} params
-   */
-  ensureConnect({ maxConnectionAttempts = 3, reconnectTimeoutMs = 1000 } = {}) {
-    let connected = false;
-    let connectionAttempts = 0;
-    const doConnect = () => {
-      if (connected) return;
-      if (connectionAttempts > maxConnectionAttempts) {
-        console.error("Failed to connect mirror reflection to target element");
-        return;
-      }
-      connectionAttempts += 1;
-      connected = this.connectMirror();
-      setTimeout(doConnect, reconnectTimeoutMs);
-    };
-    doConnect();
   }
 
   connectMirror() {
@@ -129,18 +109,23 @@ class MirrorElement extends HTMLElement {
     // Connect the target element using the current document.
     if (!targetId) {
       console.error(`No target element id attribute found`);
-      return false;
+      return;
     }
     const targetEl = document.getElementById(targetId);
     if (!targetEl) {
       console.warn(`Target element not found in document. ${targetId}`);
-      return false;
+      return;
+    }
+    if (this.targetEl?.isEqualNode(targetEl)) {
+      console.info(
+        `Target already previously connected to mirror. ${targetId}`
+      );
+      return;
     }
     this.targetEl = targetEl;
     this.connectFrame();
     this.connectStyles();
     this.connectReflection();
-    return true;
   }
 
   connectStyles() {
