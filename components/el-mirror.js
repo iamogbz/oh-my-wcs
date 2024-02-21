@@ -149,6 +149,8 @@ class MirrorElement extends HTMLElement {
         subtree: true,
       },
     });
+    // trigger initial update
+    updateStyles();
   }
 
   connectFrame() {
@@ -168,6 +170,8 @@ class MirrorElement extends HTMLElement {
       },
       dimensions: true,
     });
+    // trigger initial update
+    updateFrameSize();
   }
 
   connectReflection() {
