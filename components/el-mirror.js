@@ -9,8 +9,6 @@ class MirrorElement extends HTMLElement {
     REFLECTION_CLASSES: "reflection-cls",
     /** style attribute to be passed to all descendant elements reflected */
     REFLECTION_STYLES: "reflection-styles",
-    /** attributes passed into frame in form of "attr=value;attr=value" */
-    FRAME_ATTRS: "frame-attrs",
     /** ID of the target element to be mirrored */
     TARGET_ID: "target-id",
   });
@@ -93,19 +91,10 @@ class MirrorElement extends HTMLElement {
   }
 
   connectMirror() {
-    const targetId = this.params[MirrorElement.attrs.TARGET_ID];
-    const frameProps = this.params[MirrorElement.attrs.FRAME_ATTRS];
-    if (!frameProps) {
-      console.warn(`No frame element attributes found`, frameProps);
-    }
-    // update the mirror frame with expanded frame props
-    const frameAttrs = fromEntries([
-      ...new URLSearchParams(frameProps ?? "").entries(),
-    ]);
     updateAttributes(this, {
       "instance-id": this._instanceId,
-      ...frameAttrs,
     });
+    const targetId = this.params[MirrorElement.attrs.TARGET_ID];
     // Connect the target element using the current document.
     if (!targetId) {
       console.error(`No target element id attribute found`);
@@ -356,19 +345,6 @@ function isElement(node) {
  */
 function isText(node) {
   return node?.nodeType === Node.TEXT_NODE;
-}
-
-/**
- * Custom implementation of `{@link Object.fromEntries}`
- * @template T eventual record values
- * @param {[string, T][]} entries
- * @returns {Record<string, T>}
- */
-function fromEntries(entries) {
-  return entries.reduce(
-    (cummulator, [k, v]) => ({ ...cummulator, [k]: v }),
-    {}
-  );
 }
 
 /**

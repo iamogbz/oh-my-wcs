@@ -2,13 +2,12 @@
 
 Create synchronized replicas of a DOM node
 
-| Param            | Value              | Description                                        |
-| ---------------- | ------------------ | -------------------------------------------------- |
-| `component-name` | `"mirror-element"` | CONSTANT                                           |
-| `frame-cls`      | `string`           | Class assigned to the iframe in the mirror element |
-| `target-id`      | `string`           | ID of the element that should be mirrored          |
-
-Internal shadow elements inherit the iframe properties from the `mirror-element` custom component.
+| Param               | Value              | Description                                                        |
+| ------------------- | ------------------ | ------------------------------------------------------------------ |
+| `component-name`    | `"mirror-element"` | CONSTANT                                                           |
+| `target-id`         | `string`           | ID of the element that should be mirrored                          |
+| `reflection-cls`    | `string`           | Class attribute to be passed to all descendant elements refelected |
+| `reflection-styles` | `string`           | Style attribute to be passed to all descendant elements reflected  |
 
 ## Example
 
@@ -19,6 +18,8 @@ Internal shadow elements inherit the iframe properties from the `mirror-element`
 <mirror-element target-id="real-element"></mirror-element>
 ```
 
+[Live demo](https://codepen.io/iamogbz/pen/xxBeyWy)
+
 ### Reference
 
-* [React Mirror](https://www.npmjs.com/package/react-mirror)
+- [React Mirror](https://www.npmjs.com/package/react-mirror)
