@@ -205,9 +205,12 @@ class MirrorElement extends HTMLElement {
           style: [descendantStyles, originalStyles].filter(Boolean).join(";"),
           ...attributes,
         });
+        // scroll events do not bubble to parent so listen on each child to
         // match reflection scroll position
-        clone.scrollTop = original.scrollTop;
-        clone.scrollLeft = original.scrollLeft;
+        original.addEventListener("scroll", () => {
+          clone.scrollTop = original.scrollTop;
+          clone.scrollLeft = original.scrollLeft;
+        });
       });
 
       // @ts-expect-error reflection is always an element
