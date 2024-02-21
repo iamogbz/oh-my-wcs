@@ -189,43 +189,44 @@ class MirrorElement extends HTMLElement {
         MirrorElement.attrs.REFLECTION_STYLES
       );
 
-      const reflectedNode = cloneNode(this.targetEl, (original, clone) => {
-        const {
-          class: originalClasses,
-          style: originalStyles,
-          ...attributes
-        } = getAttributes(original);
-        const pseudoClassList = getUserActionCustomPseudoClassList(original);
-
-        updateAttributes(clone, {
-          readonly: true,
-          class: [descendantClasses, originalClasses, ...pseudoClassList]
-            .filter(Boolean)
-            .join(" "),
-          style: [descendantStyles, originalStyles].filter(Boolean).join(";"),
-          ...attributes,
-        });
-        // scroll events do not bubble to parent so listen on each child to
-        // match reflection scroll position
-        original.addEventListener("scroll", () => {
-          clone.scrollTop = original.scrollTop;
-          clone.scrollLeft = original.scrollLeft;
-        });
-      });
-
-      // @ts-expect-error reflection is always an element
-      updateAttributes(reflectedNode, { "reflection-id": this.reflectionId });
       const previousReflectionEl = this._root.querySelector(
         `[reflection-id=${this.reflectionId}]`
       );
-      // replace previous reflection
-      // TODO: do this diff efficiently
       if (previousReflectionEl) {
         this._root.removeChild(previousReflectionEl);
       }
-      if (reflectedNode) {
-        this._root.appendChild(reflectedNode);
-      }
+      const reflectedNode = cloneNode(
+        this.targetEl,
+        this._root,
+        (original, clone) => {
+          const {
+            class: originalClasses,
+            style: originalStyles,
+            ...attributes
+          } = getAttributes(original);
+          const pseudoClassList = getUserActionCustomPseudoClassList(original);
+
+          updateAttributes(clone, {
+            readonly: true,
+            class: [descendantClasses, originalClasses, ...pseudoClassList]
+              .filter(Boolean)
+              .join(" "),
+            style: [descendantStyles, originalStyles].filter(Boolean).join(";"),
+            ...attributes,
+          });
+          // scroll events do not bubble to parent so listen on each child to
+          // match reflection scroll position
+          const matchReflectionScroll = () => {
+            clone.scrollTop = original.scrollTop;
+            clone.scrollLeft = original.scrollLeft;
+          };
+          original.addEventListener("scroll", matchReflectionScroll);
+          // trigger initial update after element has been added to parent
+          matchReflectionScroll();
+        }
+      );
+      // @ts-expect-error reflection is always an element
+      updateAttributes(reflectedNode, { "reflection-id": this.reflectionId });
     };
     // provide reference for later disconnecting on callback
     this.reflectionObserver = observe({
@@ -502,18 +503,23 @@ function getAllStyleRules() {
 /**
  * Deep clones a node and applies a callback to each cloned element including descendants.
  * @param {Node | undefined} node
+ * @param {Node | undefined} into
  * @param {(original: Element, clone: Element) => void} onElement
  */
-function cloneNode(node, onElement) {
+function cloneNode(node, into, onElement) {
   if (!node) return;
-  if (isText(node)) return node.cloneNode(true);
+  if (isText(node)) {
+    const clonedNode = node.cloneNode(true);
+    into?.appendChild(clonedNode);
+    return cloneNode;
+  }
   // @ts-expect-error node is an element at this point
   /** @type {Element} */ const element = node;
   const clonedElement = document.createElement(element.tagName);
-  element.childNodes.forEach((childNode) => {
-    const clonedChildNode = cloneNode(childNode, onElement);
-    clonedChildNode && clonedElement.appendChild(clonedChildNode);
-  });
+  into?.appendChild(clonedElement);
+  element.childNodes.forEach((childNode) =>
+    cloneNode(childNode, clonedElement, onElement)
+  );
   onElement(element, clonedElement);
   return clonedElement;
 }
