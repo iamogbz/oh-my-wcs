@@ -336,7 +336,23 @@ function getValue(node) {
  * @param {Node | undefined} node
  */
 function isElement(node) {
-  return node ? !isText(node) && node.nodeType !== Node.DOCUMENT_NODE : false;
+  return node ? !isText(node) && !isDocument(node) && !isComment(node) : false;
+}
+
+/**
+ * Check if node is html document
+ * @param {Node | undefined} node
+ */
+function isDocument(node) {
+  return node?.nodeType === Node.DOCUMENT_NODE;
+}
+
+/**
+ * Check if node is comment
+ * @param {Node | undefined} node
+ */
+function isComment(node) {
+  return node?.nodeType === Node.COMMENT_NODE;
 }
 
 /**
@@ -439,11 +455,15 @@ function asCustomPseudoClass(cls) {
  * @param {Node | undefined} el
  */
 function getUserActionPseudoClassList(el) {
-  if (!isElement(el)) return [];
-  return USER_ACTION_PSEUDO_CLASS_LIST.filter((cls) =>
-    // @ts-expect-error at this point el is definitely {@type Element}
-    el?.matches(`*${userActionAsPseudoClassSelector(cls)}`)
-  );
+  if (!isElement(el) || isComment(el)) return [];
+  return USER_ACTION_PSEUDO_CLASS_LIST.filter((cls) => {
+    try {
+      // @ts-expect-error at this point el is definitely {@type Element}
+      return el?.matches(`*${userActionAsPseudoClassSelector(cls)}`);
+    } catch (e) {
+      console.error(e, el);
+    }
+  });
 }
 
 /**
