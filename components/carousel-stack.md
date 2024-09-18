@@ -16,8 +16,7 @@ Rotate between images in a specific form
 ```js
 <script src="https://cdn.jsdelivr.net/gh/iamogbz/oh-my-wcs@main/components/carousel-stack.js"></script>
 
-<carousel-stack images="linear-gradient(red, red)|linear-gradient(green, green)|linear-gradient(blue, blue)"
-    style="width:200px;height:120px;" image-gap="40px" image-idx="0"></carousel-stack>
+<carousel-stack id="carousel" images="url('https://get.fohlio.com/hubfs/Imported_Blog_Media/The-Psychology-of-Hotel-Interior-Design-Part-3-Acoustics-Fohlio-Peninsula-Shanghai-1.jpg')|url('https://get.fohlio.com/hubfs/Imported_Blog_Media/The-Psychology-of-Hotel-Interior-Design-Part-3-Acoustics-Fohlio-St-Regis-Shenzen-1.jpg')|url('https://get.fohlio.com/hubfs/Imported_Blog_Media/The-Psychology-of-Hotel-Interior-Design-Part-3-Acoustics-Fohlio-sound-diffusion-1.jpg')|url('https://get.fohlio.com/hubfs/Imported_Blog_Media/The-Psychology-of-Hotel-Interior-Design-Part-3-Acoustics-Fohlio-Dubai-skyline-1.png')" style="position:relative;width:200px;height:120px" stack-style="width:200px;height:120px;border-radius:12px;background-size:cover;border:solid 2px black;" image-gap="10px" image-idx="0" transition-secs="1"></carousel-stack>
 ```
 
 [Live demo](https://codepen.io/iamogbz/pen/eYwwOMy)
