@@ -133,10 +133,12 @@ class CarouselStackElement extends HTMLElement {
       ).toString();
       this.setImageOffset(imageElem, idx);
       setTimeout(() => {
+        const duration = `${this.transitionTimeSecs}s`;
+        const delay = `${this.transitionTimeSecs / 2 - idx / 10}s`;
         imageElem.style.transition = ["top", "left", "opacity"]
-          .map((p) => `${p} ${this.transitionTimeSecs}s ease-in-out`)
+          .map((p) => `${p} ${duration} ease-in-out ${delay}`)
           .join(",");
-      }, 0);
+      }, this.transitionTimeMs / 2);
     });
 
     this.lastIndex = this.currentIndex;
