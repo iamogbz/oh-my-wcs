@@ -90,7 +90,10 @@ class CarouselStackElement extends HTMLElement {
     this.onEachImage((imageElem, idx) => {
       this.setImageOffset(imageElem, idx + 1);
       // transparent if top two images
-      imageElem.style.opacity = Number(!(idx === 3 || idx === 4)).toString();
+      const topTwoImages = idx === 3 || idx === 4;
+      imageElem.style.opacity = Number(
+        topTwoImages ? !topTwoImages : (idx + 1) / 3
+      ).toString();
     });
     setTimeout(() => {
       this.onEachImage((imageElem) => {
@@ -124,7 +127,10 @@ class CarouselStackElement extends HTMLElement {
       imageElem.style.backgroundImage = imageBg;
       imageElem.style.position = "absolute";
       // transparent if top or bottom image
-      imageElem.style.opacity = Number(!(idx === 0 || idx === 4)).toString();
+      const topOrBottomImage = idx === 0 || idx === 4;
+      imageElem.style.opacity = Number(
+        topOrBottomImage ? !topOrBottomImage : idx / 3
+      ).toString();
       this.setImageOffset(imageElem, idx);
       setTimeout(() => {
         imageElem.style.transition = ["top", "left", "opacity"]
