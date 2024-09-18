@@ -2,14 +2,16 @@ class CarouselStackElement extends HTMLElement {
   static NAME = "carousel-stack";
   static ATTR_DELIM = "|";
   static attrs = Object.freeze({
-    /** Transition time when images are rotated. */
-    TRANSITION_TIME_SECS: "transition-secs",
+    /** Space between images */
+    IMAGE_GAP: "image-gap",
+    /** The current image on top in the list of images given. */
+    IMAGE_INDEX: "image-idx",
     /** List of image sources e.g. href or data urls, delimited by '|' */
     IMAGES: "images",
-    IMAGE_GAP: "image-gap",
-    IMAGE_INDEX: "image-idx",
     /** Style attributes to copy delimted by '|' */
-    STYLE_TRANSFER: "style-transfer",
+    STACK_STYLE: "stack-style",
+    /** Transition time when images are rotated. */
+    TRANSITION_TIME_SECS: "transition-secs",
   });
 
   static imagePrefixes = ["in", "bottom", "next", "top", "out"];
@@ -32,16 +34,8 @@ class CarouselStackElement extends HTMLElement {
     );
   }
 
-  /**
-   * @type {(keyof CSSStyleDeclaration)[]}
-   */
-  get transferStyles() {
-    // @ts-expect-error string vs CSSStyleDeclaration
-    return (
-      this.getAttribute(CarouselStackElement.attrs.STYLE_TRANSFER)?.split(
-        CarouselStackElement.ATTR_DELIM
-      ) ?? []
-    );
+  get stackStyle() {
+    return this.getAttribute(CarouselStackElement.attrs.STACK_STYLE) ?? "";
   }
 
   get images() {
@@ -165,7 +159,9 @@ class CarouselStackElement extends HTMLElement {
       const imageElem =
         this._root.getElementById(imageId) ?? document.createElement("div");
       imageElem.id = imageId;
-      this.copyStyles(this, imageElem);
+      const placeholderElem = document.createElement("img");
+      placeholderElem.setAttribute("style", this.stackStyle);
+      this.copyInlineStyles(placeholderElem, imageElem);
       callback(imageElem, idx);
     });
   }
@@ -175,14 +171,16 @@ class CarouselStackElement extends HTMLElement {
    * @param {HTMLElement} from
    * @param {HTMLElement} to
    */
-  copyStyles(from, to) {
-    for (const styleAttr of this.transferStyles) {
-      try {
-        // @ts-expect-error skip readonly property errors
-        to.style[styleAttr] = from.style[styleAttr];
-      } catch (e) {
-        continue;
-      }
+  copyInlineStyles(from, to) {
+    const sourceStyles = from.style; // Access the inline styles of the source element
+    const targetStyles = to.style; // Access the inline styles of the target element
+
+    // Loop through all style properties in the source element
+    for (let i = 0; i < sourceStyles.length; i++) {
+      const styleProperty = sourceStyles[i]; // Get the property name
+      const styleValue = sourceStyles.getPropertyValue(styleProperty); // Get the property value
+      // Apply the inline style property and value to the target element
+      targetStyles.setProperty(styleProperty, styleValue);
     }
   }
 }
