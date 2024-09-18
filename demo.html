@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head id="html-head">
+  <title>Oh My Web Components! | github/iamogbz</title>
+  <link rel="icon"
+    href="https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/new_releases/default/48px.svg" />
+  <link rel="stylesheet" href="https://necolas.github.io/normalize.css/latest/normalize.css" />
+  <style>
+    body {
+      padding: 8px;
+    }
+  </style>
+  <script src="components/carousel-stack.js"></script>
+</head>
+
+<body>
+  <carousel-stack
+    images="linear-gradient(red, red)|linear-gradient(green, green)|linear-gradient(blue, blue)|linear-gradient(yellow, yellow)"
+    style="width:200px;height:120px;border-radius:12px;" image-gap="40px" image-idx="0"
+    style-transfer="border-radius|height|width" />
+
+  <script>
+    setInterval(() => {
+      const elem = document.getElementsByTagName("carousel-stack")[0];
+      const idx = Number(elem?.getAttribute?.("image-idx") ?? 0);
+      elem?.setAttribute?.("image-idx", (idx + 1) % 4);
+    }, 3000);
+  </script>
+</body>
+
+</html>
