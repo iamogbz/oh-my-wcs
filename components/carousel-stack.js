@@ -154,11 +154,12 @@ class CarouselStackElement extends HTMLElement {
 
   /**
    * Call a function on each image in the carousel stack
-   * @param {(imageElem: HTMLElement, index: number) => void} callback
+   * @param {(imageElem: HTMLImageElement, index: number) => void} callback
    */
   onEachImage(callback = () => undefined) {
     CarouselStackElement.imagePrefixes.forEach((imgPrefix, idx) => {
       const imageId = `${imgPrefix}Image`;
+      /** @type {HTMLImageElement} */
       const imageElem =
         this._root.getElementById(imageId) ?? document.createElement("img");
       imageElem.id = imageId;
