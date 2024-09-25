@@ -118,7 +118,7 @@ class CarouselStackElement extends HTMLElement {
     this.onEachImage((imageElem, idx) => {
       const imageBg =
         imagesToDisplay[nextIdx(topImageIdx, imagesToDisplay.length * 2 - idx)];
-      imageElem.src = imageBg;
+      imageElem.setAttribute('src', imageBg);
       imageElem.style.backgroundImage = imageBg;
       imageElem.style.position = "absolute";
       imageElem.setAttribute('height', imageElem.style.height);
@@ -154,7 +154,7 @@ class CarouselStackElement extends HTMLElement {
 
   /**
    * Call a function on each image in the carousel stack
-   * @param {(imageElem: HTMLImageElement, index: number) => void} callback
+   * @param {(imageElem: HTMLElement, index: number) => void} callback
    */
   onEachImage(callback = () => undefined) {
     CarouselStackElement.imagePrefixes.forEach((imgPrefix, idx) => {
