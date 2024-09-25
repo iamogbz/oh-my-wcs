@@ -118,8 +118,11 @@ class CarouselStackElement extends HTMLElement {
     this.onEachImage((imageElem, idx) => {
       const imageBg =
         imagesToDisplay[nextIdx(topImageIdx, imagesToDisplay.length * 2 - idx)];
+      imageElem.setAttribute('src', imageBg);
       imageElem.style.backgroundImage = imageBg;
       imageElem.style.position = "absolute";
+      imageElem.setAttribute('height', imageElem.style.height);
+      imageElem.setAttribute('width', imageElem.style.width);
       // transparent if top or bottom image
       const topOrBottomImage = idx === 0 || idx === 4;
       imageElem.style.opacity = Number(
@@ -156,8 +159,9 @@ class CarouselStackElement extends HTMLElement {
   onEachImage(callback = () => undefined) {
     CarouselStackElement.imagePrefixes.forEach((imgPrefix, idx) => {
       const imageId = `${imgPrefix}Image`;
+      // @type {HTMLImageElement}
       const imageElem =
-        this._root.getElementById(imageId) ?? document.createElement("div");
+        this._root.getElementById(imageId) ?? document.createElement("img");
       imageElem.id = imageId;
       const placeholderElem = document.createElement("img");
       placeholderElem.setAttribute("style", this.stackStyle);
