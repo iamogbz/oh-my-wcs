@@ -34,3 +34,8 @@ const keys = window.btoa(JSON.stringify([
 ```
 
 [![Example](https://github.com/user-attachments/assets/39972d27-2f60-4c28-aee7-01979c738e76)](https://ogbizi.com/oh-my-wcs/?component-name=simple-keyboard&keys=W1siMSIsIjIiLCIzIiwiNCIsIjUiLCI2IiwiNyIsIjgiLCI5IiwiMCJdLFsiU2hpZnQiLCJCYWNrc3BhY2UiXSxbInEiLCJ3IiwiZSIsInIiLCJ0IiwieSIsInUiLCJpIiwibyIsInAiXSxbImEiLCJzIiwiZCIsImYiLCJnIiwiaCIsImoiLCJrIiwibCJdLFsieiIsIngiLCJjIiwidiIsImIiLCJuIiwibSJdLFsiICIsIkVudGVyIl1d&keys-active=WzJd&keys-disabled=WzFd&keys-selected=WzBd)
+
+> NOTE
+
+1. Keys are case sensitive so providing two cases e.g. 'Q' and 'q' would be highlighted separately when pressed
+2. Keys are not deduplicated so ensure only one entry is provided per key if that is the intended behaviour
