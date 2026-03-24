@@ -198,16 +198,23 @@ class SimpleKeyboard extends HTMLElement {
         if (this.selectedKeys.includes(k)) {
           keyWrapper.setAttribute("aria-selected", "true");
         }
-        const keyName = this.getAttribute(
-          `data-keyname-${k.toLowerCase().trim() || "space"}`
-        );
-        keyWrapper.innerHTML = keyName || k;
+        const spaceKey = " ";
+        const defaultSpaceKeyName = "Spacebar";
+        const keyName =
+          this.getAttribute(
+            `data-keyname-${
+              k.toLowerCase().trim() || (k === spaceKey ? "space" : "null")
+            }`
+          ) || k === spaceKey
+            ? defaultSpaceKeyName
+            : undefined; // provide a default name for the spacebar key
+        keyWrapper.innerHTML = keyName || k || "&nbsp;";
         keyWrapper.title = k;
         keyWrapper.dataset.key = k;
 
         keyWrapper.addEventListener("mousedown", (e) => this.selectKey(k, e));
         keyWrapper.addEventListener("mouseup", (e) => this.releaseKey(k, e));
-        const selectKeys = ["Enter", "Spacebar", " "];
+        const selectKeys = ["Enter", defaultSpaceKeyName, spaceKey];
         keyWrapper.addEventListener(
           "keyup",
           (e) => {
