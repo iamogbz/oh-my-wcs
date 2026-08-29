@@ -27,13 +27,13 @@ const keys = window.btoa(JSON.stringify([
 ]));
 // same logic applies for the keys-active, disabled, selected etc. except they are 1d array
 
-<simple-keyboard keys={keys} keys-disabled="WzFd" data-keyname-space="Spacebar"></simple-keyboard>
+<simple-keyboard keys={keys} keys-disabled="WzFd...=" data-keyname-space="Spacebar"></simple-keyboard>
 // data-keyname-space: example custom key name for spacebar
 // data-keyname-null: example custom key name for empty spaces
 // data-keyname-k: example custom key name for the lower letter K
 ```
 
-[![Example](https://github.com/user-attachments/assets/39972d27-2f60-4c28-aee7-01979c738e76)](https://ogbizi.com/oh-my-wcs/?component-name=simple-keyboard&keys=W1siMSIsIjIiLCIzIiwiNCIsIjUiLCI2IiwiNyIsIjgiLCI5IiwiMCJdLFsiU2hpZnQiLCJCYWNrc3BhY2UiXSxbInEiLCJ3IiwiZSIsInIiLCJ0IiwieSIsInUiLCJpIiwibyIsInAiXSxbImEiLCJzIiwiZCIsImYiLCJnIiwiaCIsImoiLCJrIiwibCJdLFsieiIsIngiLCJjIiwidiIsImIiLCJuIiwibSJdLFsiICIsIkVudGVyIl1d&keys-active=WzJd&keys-disabled=WzFd&keys-selected=WzBd)
+[![Example](https://raw.githubusercontent.com/iamogbz/oh-my-wcs/main/public/simple-keyboard-example.png)](https://ogbizi.com/oh-my-wcs/?component-name=simple-keyboard&keys=W1siMSIsIjIiLCIzIiwiNCIsIjUiLCI2IiwiNyIsIjgiLCI5IiwiMCJdLFsiU2hpZnQiLCJCYWNrc3BhY2UiXSxbInEiLCJ3IiwiZSIsInIiLCJ0IiwieSIsInUiLCJpIiwibyIsInAiXSxbImEiLCJzIiwiZCIsImYiLCJnIiwiaCIsImoiLCJrIiwibCJdLFsieiIsIngiLCJjIiwidiIsImIiLCJuIiwibSJdLFsiICIsIkVudGVyIl1d&keys-active=WzJd&keys-disabled=WzFd&keys-selected=WzBd)
 
 > NOTE
 
